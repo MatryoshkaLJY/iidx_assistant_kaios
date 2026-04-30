@@ -1,7 +1,7 @@
 {
   "name": "PocketIIDX",
   "description": "iidx.pro data viewer for KaiOS",
-  "version": "0.2",
+  "version": "1.0.0",
   "launch_path": "/index.html",
   "type": "privileged",
   "origin": "app://pocketiidx",
