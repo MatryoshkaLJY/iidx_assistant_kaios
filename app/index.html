@@ -42,18 +42,47 @@
 
   <!-- Menu Page -->
   <section id="page-menu" class="page">
-    <div class="header">PocketIIDX</div>
-    <div class="content">
-      <div class="scrollable">
-        <ul class="list" id="menu-list">
-          <li class="list-item" data-action="sp-diff">SP 难度表</li>
-          <li class="list-item" data-action="dp-diff">DP 难度表</li>
-          <li class="list-item" data-action="sp-radar">SP 雷达</li>
-          <li class="list-item" data-action="dp-radar">DP 雷达</li>
-          <li class="list-item" data-action="sp-rec">SP 练习推荐</li>
-          <li class="list-item" data-action="dp-rec">DP 练习推荐</li>
-          <li class="list-item" data-action="search">歌曲搜索</li>
-        </ul>
+    <div class="menu-logo-bar">
+      <div class="menu-logo">PocketIIDX</div>
+    </div>
+    <div class="content menu-content">
+      <div class="menu-grid" id="menu-grid">
+        <div class="menu-cell list-item" data-action="sp-diff" data-num="1">
+          <span class="menu-num">1</span>
+          <span class="menu-label">SP难度表</span>
+        </div>
+        <div class="menu-cell list-item" data-action="sp-radar" data-num="2">
+          <span class="menu-num">2</span>
+          <span class="menu-label">SP雷达</span>
+        </div>
+        <div class="menu-cell list-item" data-action="sp-rec" data-num="3">
+          <span class="menu-num">3</span>
+          <span class="menu-label">SP练习推荐</span>
+        </div>
+        <div class="menu-cell list-item" data-action="dp-diff" data-num="4">
+          <span class="menu-num">4</span>
+          <span class="menu-label">DP难度表</span>
+        </div>
+        <div class="menu-cell list-item" data-action="dp-radar" data-num="5">
+          <span class="menu-num">5</span>
+          <span class="menu-label">DP雷达</span>
+        </div>
+        <div class="menu-cell list-item" data-action="dp-rec" data-num="6">
+          <span class="menu-num">6</span>
+          <span class="menu-label">DP练习推荐</span>
+        </div>
+        <div class="menu-cell list-item" data-action="quick-rec" data-num="7">
+          <span class="menu-num">7</span>
+          <span class="menu-label">快捷推荐</span>
+        </div>
+        <div class="menu-cell list-item" data-action="search" data-num="8">
+          <span class="menu-num">8</span>
+          <span class="menu-label">歌曲搜索</span>
+        </div>
+        <div class="menu-cell list-item" data-action="favorites" data-num="9">
+          <span class="menu-num">9</span>
+          <span class="menu-label">收藏夹</span>
+        </div>
       </div>
     </div>
     <div class="softkey-bar">
@@ -210,6 +239,7 @@
     <div class="app-menu-bg"></div>
     <ul class="app-menu-list" id="app-menu-list">
       <li class="app-menu-item" data-menu-cmd="profile">用户信息</li>
+      <li class="app-menu-item" data-menu-cmd="clear-cache">清除缓存</li>
       <li class="app-menu-item" data-menu-cmd="logout">退出登录</li>
     </ul>
   </div>

@@ -285,5 +285,35 @@ var Storage = {
     this.clearAllRadarCaches();
     this.clearAllDiffCaches();
     this.clearAllRecCaches();
+  },
+
+  // Clear all caches including music cache
+  clearAllCaches: function() {
+    this.clearUserCaches();
+    this.clearCachedMusicList();
+    this.clearMusicCacheMeta();
+  },
+
+  // Calculate total cache size in bytes
+  getCacheSize: function() {
+    var total = 0;
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf('pocketiidx_') === 0) {
+          var val = localStorage.getItem(key);
+          if (val) {
+            total += val.length * 2;
+          }
+        }
+      }
+    } catch (e) {}
+    return total;
+  },
+
+  formatSize: function(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 };

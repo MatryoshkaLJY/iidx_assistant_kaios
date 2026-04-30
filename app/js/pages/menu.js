@@ -12,22 +12,7 @@ var MenuPage = {
     App.renderFocus();
   },
 
-  onEnter: function() {
-    if (this.menuVisible) {
-      var items = document.querySelectorAll('#app-menu-list .app-menu-item');
-      if (this.menuFocusIndex >= 0 && this.menuFocusIndex < items.length) {
-        var cmd = items[this.menuFocusIndex].getAttribute('data-menu-cmd');
-        this.execMenuCmd(cmd);
-      }
-      return;
-    }
-
-    var item = App.getFocusedItem();
-    if (!item) return;
-
-    var action = item.getAttribute('data-action');
-    if (!action) return;
-
+  execAction: function(action) {
     switch (action) {
       case 'sp-diff':
         App.showPage('difficulty', { playStyle: 0 });
@@ -50,7 +35,31 @@ var MenuPage = {
       case 'search':
         App.showPage('search');
         break;
+      case 'quick-rec':
+        alert('功能开发中');
+        break;
+      case 'favorites':
+        alert('功能开发中');
+        break;
     }
+  },
+
+  onEnter: function() {
+    if (this.menuVisible) {
+      var items = document.querySelectorAll('#app-menu-list .app-menu-item');
+      if (this.menuFocusIndex >= 0 && this.menuFocusIndex < items.length) {
+        var cmd = items[this.menuFocusIndex].getAttribute('data-menu-cmd');
+        this.execMenuCmd(cmd);
+      }
+      return;
+    }
+
+    var item = App.getFocusedItem();
+    if (!item) return;
+
+    var action = item.getAttribute('data-action');
+    if (!action) return;
+    this.execAction(action);
   },
 
   onArrowUp: function() {
@@ -60,8 +69,12 @@ var MenuPage = {
         this.menuFocusIndex = 0;
       }
       this.updateMenuFocus();
-    } else {
-      App.moveFocus(-1);
+      return;
+    }
+    var idx = App.currentFocusIndex;
+    if (idx >= 3) {
+      App.currentFocusIndex = idx - 3;
+      App.renderFocus();
     }
   },
 
@@ -73,8 +86,45 @@ var MenuPage = {
         this.menuFocusIndex = items.length - 1;
       }
       this.updateMenuFocus();
-    } else {
-      App.moveFocus(1);
+      return;
+    }
+    var idx = App.currentFocusIndex;
+    if (idx < 6) {
+      App.currentFocusIndex = idx + 3;
+      App.renderFocus();
+    }
+  },
+
+  onArrowLeft: function() {
+    if (this.menuVisible) return;
+    var idx = App.currentFocusIndex;
+    if (idx % 3 !== 0) {
+      App.currentFocusIndex = idx - 1;
+      App.renderFocus();
+    }
+  },
+
+  onArrowRight: function() {
+    if (this.menuVisible) return;
+    var idx = App.currentFocusIndex;
+    if (idx % 3 !== 2) {
+      App.currentFocusIndex = idx + 1;
+      App.renderFocus();
+    }
+  },
+
+  onDigit: function(num) {
+    if (this.menuVisible) return;
+    var cells = document.querySelectorAll('#menu-grid .menu-cell');
+    for (var i = 0; i < cells.length; i++) {
+      var cellNum = parseInt(cells[i].getAttribute('data-num'), 10);
+      if (cellNum === num) {
+        App.currentFocusIndex = i;
+        App.renderFocus();
+        var action = cells[i].getAttribute('data-action');
+        this.execAction(action);
+        break;
+      }
     }
   },
 
@@ -108,7 +158,7 @@ var MenuPage = {
     this.savedFocusIndex = App.currentFocusIndex;
 
     // Remove focus from page items
-    var pageItems = document.querySelectorAll('#menu-list .list-item');
+    var pageItems = document.querySelectorAll('#menu-grid .menu-cell');
     for (var i = 0; i < pageItems.length; i++) {
       pageItems[i].classList.remove('focused');
     }
@@ -116,8 +166,24 @@ var MenuPage = {
     var menuEl = document.getElementById('app-menu');
     if (menuEl) menuEl.style.display = 'block';
 
+    this.updateMenuLabels();
     this.updateMenuFocus();
     this.updateSoftkeyLabels('关闭', '');
+  },
+
+  updateMenuLabels: function() {
+    var items = document.querySelectorAll('#app-menu-list .app-menu-item');
+    for (var i = 0; i < items.length; i++) {
+      var cmd = items[i].getAttribute('data-menu-cmd');
+      if (cmd === 'clear-cache') {
+        var size = Storage.getCacheSize();
+        var label = Storage.formatSize(size);
+        items[i].textContent = '清除缓存 (' + label + ')';
+      } else if (cmd === 'logout') {
+        var username = Storage.getUsername();
+        items[i].textContent = username ? '退出登录 (' + username + ')' : '退出登录';
+      }
+    }
   },
 
   hideMenu: function() {
@@ -165,6 +231,9 @@ var MenuPage = {
       App.showPage('login');
     } else if (cmd === 'profile') {
       alert('用户信息功能待实现');
+    } else if (cmd === 'clear-cache') {
+      Storage.clearAllCaches();
+      alert('缓存已清除');
     }
   }
 };

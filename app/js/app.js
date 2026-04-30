@@ -24,6 +24,11 @@ var App = {
   },
 
   showPage: function(pageId, data) {
+    // Blur any focused input to dismiss the virtual keyboard
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+
     // Hide current page
     var pages = document.querySelectorAll('.page');
     for (var i = 0; i < pages.length; i++) {
@@ -55,6 +60,11 @@ var App = {
   },
 
   goBack: function() {
+    // Blur any focused input to dismiss the virtual keyboard
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+
     var handler = this.pageHandlers[this.currentPage];
     if (handler && handler.onBack) {
       var handled = handler.onBack();
@@ -173,6 +183,13 @@ var App = {
     return null;
   },
 
+  _isEditingInput: function() {
+    var active = document.activeElement;
+    if (!active) return false;
+    var tag = active.tagName.toLowerCase();
+    return tag === 'input' || tag === 'textarea';
+  },
+
   showLoading: function(text) {
     var el = document.getElementById('loading-overlay');
     var txt = document.getElementById('loading-text');
@@ -214,16 +231,22 @@ var App = {
           break;
 
         case 'ArrowLeft':
-          e.preventDefault();
           if (handler && handler.onArrowLeft) {
+            e.preventDefault();
             handler.onArrowLeft();
+          } else if (self.focusableItems.length > 0 && !self._isEditingInput()) {
+            e.preventDefault();
+            self.moveFocus(-5);
           }
           break;
 
         case 'ArrowRight':
-          e.preventDefault();
           if (handler && handler.onArrowRight) {
+            e.preventDefault();
             handler.onArrowRight();
+          } else if (self.focusableItems.length > 0 && !self._isEditingInput()) {
+            e.preventDefault();
+            self.moveFocus(5);
           }
           break;
 
@@ -254,6 +277,21 @@ var App = {
           e.preventDefault();
           if (handler && handler.onSoftRight) {
             handler.onSoftRight();
+          }
+          break;
+
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+          e.preventDefault();
+          if (handler && handler.onDigit) {
+            handler.onDigit(parseInt(e.key, 10));
           }
           break;
       }
