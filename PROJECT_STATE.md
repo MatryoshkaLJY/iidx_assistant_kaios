@@ -33,7 +33,7 @@ PocketIIDX 是一个基于 KaiOS 2.5.2 的移动端应用，用于在 Nokia 2720
 - 网格视图：40×25px 方形单元格，底色为 clear-flag 半透明 tint（rgba 兼容 KaiOS）
 - 进度条：group-bar 下方 3px 彩色窄条，按 clear-flag 比例显示当前组进度
 - 左右键全局统一为快速跳转（±5 项）；网格模式下方向键按行列导航
-- 列表和网格均显示 BP（min_bp）
+- 列表和网格均显示 BP（miss_count）
 - 状态持久化：退出时保存 groupIndex + viewMode，下次进入同一张表自动恢复定位
 - 点击进入歌曲详情
 
