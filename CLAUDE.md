@@ -83,7 +83,7 @@ All API methods follow the callback signature `function(error, result, status)`.
 
 ### Data Flow Patterns
 
-- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with digit keys `1`/`3`. Left/right arrows perform fast vertical navigation (`moveFocus(-5/+5)`) globally.
+- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with digit keys `1`/`3`. Left/right arrows perform fast vertical navigation (`moveFocus(-5/+5)`) globally. Digit `2` toggles between list view and 6-column grid view. Grid cells show clear-flag tinted backgrounds (compact 40×25px). A 3px progress bar below the group bar visualizes clear-flag distribution for the current group. Browsing state (group index, view mode) is saved on exit and restored when re-entering the same table.
 - **Recommendations**: Three modes (`hot_hand`, `progress`, `ascension`). Results sorted by `recommendation_score` descending.
 - **Radar**: Six dimensions (`notes`, `peak`, `scratch`, `soflan`, `charge`, `chord`). On first load, all 6 dimensions' detail + recommendation data are prefetched in parallel (12 requests) and cached together.
 - **Search**: Full song list fetched once, field-cropped to ~12 fields, cached in `localStorage`. Filtering is done client-side via `Utils.fuzzyMatch()` on `title`, `plainTitle`, `artist`, and `genre`.
@@ -106,6 +106,7 @@ All API methods follow the callback signature `function(error, result, status)`.
 | `pocketiidx_radar_cache_{playStyle}` | Radar summary + dimensions + dimensionData |
 | `pocketiidx_diff_cache_{tableName}` | Difficulty table data |
 | `pocketiidx_rec_cache_{playStyle}_{mode}` | Recommendation songs array |
+| `pocketiidx_diff_state_{playStyle}` | Difficulty table browsing state (tableName, groupIndex, viewMode) |
 
 ### File Loading Order
 
