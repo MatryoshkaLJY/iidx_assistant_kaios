@@ -177,10 +177,15 @@
   <!-- Radar Summary Page -->
   <section id="page-radar" class="page">
     <div class="header" id="radar-header">雷达</div>
-    <div class="content">
-      <div class="scrollable">
-        <ul class="list" id="radar-list"></ul>
+    <div class="content radar-content">
+      <div class="radar-chart-wrap">
+        <svg id="radar-svg" width="240" height="116" viewBox="0 0 240 116"></svg>
       </div>
+      <div class="radar-info-bar">
+        <span id="radar-focus-dim">-</span>
+        <span id="radar-total">Total: -</span>
+      </div>
+      <div class="radar-dim-grid" id="radar-dim-grid"></div>
     </div>
     <div class="softkey-bar">
       <div class="softkey-left" id="radar-soft-left">返回</div>

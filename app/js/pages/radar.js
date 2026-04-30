@@ -4,6 +4,8 @@ var RadarPage = {
   dimensions: [],
   dimensionData: {},
   preloadComplete: false,
+  totalValue: 0,
+  mainColor: '#FF80F2',
 
   dimensionLabels: {
     notes: 'Notes',
@@ -11,8 +13,19 @@ var RadarPage = {
     peak: 'Peak',
     chord: 'Chord',
     charge: 'Charge',
-    soflan: 'Soflan'
+    soflan: 'Sof-Lan'
   },
+
+  dimColors: {
+    notes: '#FF80F2',
+    peak: '#FFB580',
+    scratch: '#DE6F6F',
+    soflan: '#73B6E6',
+    charge: '#986FDE',
+    chord: '#B2E070'
+  },
+
+  dimOrder: ['notes', 'peak', 'scratch', 'soflan', 'charge', 'chord'],
 
   onShow: function(data) {
     if (data) {
@@ -23,7 +36,7 @@ var RadarPage = {
       this.preloadComplete = false;
       this.loadRadarSummary();
     } else if (this.dimensions.length > 0) {
-      this.renderRadarList();
+      this.renderRadarPage();
     } else {
       this.loadRadarSummary();
     }
@@ -44,14 +57,13 @@ var RadarPage = {
   loadRadarSummary: function() {
     var self = this;
 
-    // Try cache first
     var cache = Storage.getRadarCache(this.playStyle);
     if (cache && App.isCacheValid(cache)) {
       self.radarData = cache.summary;
       self.dimensions = cache.dimensions;
       self.dimensionData = cache.dimensionData;
       self.preloadComplete = true;
-      self.renderRadarList();
+      self.renderRadarPage();
       return;
     }
 
@@ -67,16 +79,15 @@ var RadarPage = {
 
       self.radarData = result;
       self.dimensions = result && result.radar_summary ? result.radar_summary : [];
-      self.renderRadarList();
+      self.renderRadarPage();
 
-      // Pre-fetch all dimension details and recommendations in background
       self.preloadAllDimensionData();
     });
   },
 
   preloadAllDimensionData: function() {
     var self = this;
-    var total = this.dimensions.length * 2; // detail + rec per dimension
+    var total = this.dimensions.length * 2;
     if (total === 0) {
       this.preloadComplete = true;
       this.saveRadarCache();
@@ -98,7 +109,6 @@ var RadarPage = {
         this.dimensionData[dim] = {};
       }
 
-      // Fetch dimension detail
       Api.getRadarDimension(this.playStyle, dim, function(dimension) {
         return function(error, result) {
           if (!error && result) {
@@ -108,7 +118,6 @@ var RadarPage = {
         };
       }(dim));
 
-      // Fetch dimension recommendations
       Api.getRadarRecommendations(this.playStyle, dim, function(dimension) {
         return function(error, result) {
           if (!error && result) {
@@ -120,33 +129,224 @@ var RadarPage = {
     }
   },
 
-  renderRadarList: function() {
+  renderRadarPage: function() {
     var header = document.getElementById('radar-header');
     if (header) header.textContent = (this.playStyle === 0 ? 'SP' : 'DP') + ' 雷达';
 
-    var list = document.getElementById('radar-list');
-    list.innerHTML = '';
-
-    if (this.dimensions.length === 0) {
-      list.innerHTML = '<li class="list-item">暂无雷达数据</li>';
-    } else {
-      for (var i = 0; i < this.dimensions.length; i++) {
-        var dim = this.dimensions[i];
-        var li = document.createElement('li');
-        li.className = 'list-item';
-
-        var label = this.dimensionLabels[dim.dimension] || dim.dimension;
-        var value = dim.average_radar_value !== undefined ? dim.average_radar_value.toFixed(2) : '-';
-
-        li.innerHTML = '<span class="item-title">' + label + '</span><span class="sub">平均值: ' + value + '</span>';
-        li.setAttribute('data-dim-idx', i);
-        list.appendChild(li);
-      }
-    }
+    this.drawRadarChart();
+    this.renderDimGrid();
 
     App.updateFocusableItems();
     App.currentFocusIndex = 0;
     App.renderFocus();
+    this.updateRadarHighlight();
+  },
+
+  drawRadarChart: function() {
+    var svg = document.getElementById('radar-svg');
+    if (!svg) return;
+
+    var centerX = 120;
+    var centerY = 54;
+    var radius = 40;
+
+    var dimOrder = this.dimOrder;
+    var dimColors = this.dimColors;
+
+    var values = [];
+    var labels = [];
+    var maxValue = 0;
+    var total = 0;
+
+    for (var i = 0; i < dimOrder.length; i++) {
+      var dim = dimOrder[i];
+      var found = null;
+      for (var j = 0; j < this.dimensions.length; j++) {
+        if (this.dimensions[j].dimension === dim) {
+          found = this.dimensions[j];
+          break;
+        }
+      }
+      var val = found ? (found.average_radar_value || 0) : 0;
+      values.push(val);
+      labels.push(this.dimensionLabels[dim] || dim);
+      if (val > maxValue) maxValue = val;
+      total += val;
+    }
+
+    this.totalValue = total;
+
+    var mainColor = dimColors[dimOrder[0]];
+    var maxIdx = 0;
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] > values[maxIdx]) {
+        maxIdx = i;
+      }
+    }
+    mainColor = dimColors[dimOrder[maxIdx]];
+    this.mainColor = mainColor;
+
+    var normMax = maxValue > 0 ? maxValue : 1;
+    var normValues = [];
+    for (var i = 0; i < values.length; i++) {
+      normValues.push(values[i] / normMax);
+    }
+
+    var html = '';
+
+    for (var level = 1; level <= 3; level++) {
+      var levelRadius = radius * level / 3;
+      var polyPoints = [];
+      for (var i = 0; i < 6; i++) {
+        var angle = (Math.PI / 2) - (Math.PI * 2 * i / 6);
+        var x = centerX + levelRadius * Math.cos(angle);
+        var y = centerY - levelRadius * Math.sin(angle);
+        polyPoints.push(x + ',' + y);
+      }
+      html += '<polygon points="' + polyPoints.join(' ') + '" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>';
+    }
+
+    for (var i = 0; i < 6; i++) {
+      var angle = (Math.PI / 2) + (Math.PI * 2 * i / 6);
+      var x = centerX + radius * Math.cos(angle);
+      var y = centerY - radius * Math.sin(angle);
+      html += '<line x1="' + centerX + '" y1="' + centerY + '" x2="' + x + '" y2="' + y + '" stroke="#e8e8e8" stroke-width="0.5"/>';
+    }
+
+    var dataPoints = [];
+    for (var i = 0; i < 6; i++) {
+      var angle = (Math.PI / 2) + (Math.PI * 2 * i / 6);
+      var x = centerX + radius * Math.cos(angle) * normValues[i];
+      var y = centerY - radius * Math.sin(angle) * normValues[i];
+      dataPoints.push(x + ',' + y);
+    }
+    html += '<polygon points="' + dataPoints.join(' ') + '" fill="' + mainColor + '" fill-opacity="0.15" stroke="' + mainColor + '" stroke-width="1.2"/>';
+
+    for (var i = 0; i < 6; i++) {
+      var angle = (Math.PI / 2) + (Math.PI * 2 * i / 6);
+      var x = centerX + radius * Math.cos(angle) * normValues[i];
+      var y = centerY - radius * Math.sin(angle) * normValues[i];
+      var color = dimColors[dimOrder[i]];
+      html += '<circle id="radar-dot-' + dimOrder[i] + '" cx="' + x + '" cy="' + y + '" r="3" fill="' + color + '" stroke="#fff" stroke-width="0.5"/>';
+    }
+
+    for (var i = 0; i < 6; i++) {
+      var angle = (Math.PI / 2) + (Math.PI * 2 * i / 6);
+      var labelRadius = radius + 10;
+      var x = centerX + labelRadius * Math.cos(angle);
+      var y = centerY - labelRadius * Math.sin(angle);
+      var color = dimColors[dimOrder[i]];
+      html += '<text x="' + x + '" y="' + (y + 3) + '" font-size="9" fill="' + color + '" text-anchor="middle" font-family="sans-serif">' + labels[i] + '</text>';
+    }
+
+    svg.innerHTML = html;
+  },
+
+  renderDimGrid: function() {
+    var grid = document.getElementById('radar-dim-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    var dimOrder = this.dimOrder;
+    var dimColors = this.dimColors;
+
+    for (var i = 0; i < dimOrder.length; i++) {
+      var dim = dimOrder[i];
+      var found = null;
+      var foundIdx = -1;
+      for (var j = 0; j < this.dimensions.length; j++) {
+        if (this.dimensions[j].dimension === dim) {
+          found = this.dimensions[j];
+          foundIdx = j;
+          break;
+        }
+      }
+      var val = found ? (found.average_radar_value || 0) : 0;
+
+      var cell = document.createElement('div');
+      cell.className = 'radar-dim-cell list-item';
+      cell.setAttribute('data-dim', dim);
+      cell.setAttribute('data-dim-idx', foundIdx);
+
+      var label = this.dimensionLabels[dim] || dim;
+      var color = dimColors[dim];
+
+      cell.innerHTML = '<span class="radar-dim-name" style="color:' + color + '">' + label + '</span><span class="radar-dim-value">' + val.toFixed(2) + '</span>';
+
+      grid.appendChild(cell);
+    }
+  },
+
+  updateRadarHighlight: function() {
+    var item = App.getFocusedItem();
+    if (!item) return;
+
+    var dim = item.getAttribute('data-dim');
+    var dimIdx = parseInt(item.getAttribute('data-dim-idx'), 10);
+
+    var focusEl = document.getElementById('radar-focus-dim');
+    var totalEl = document.getElementById('radar-total');
+    if (focusEl && dimIdx >= 0 && this.dimensions[dimIdx]) {
+      var label = this.dimensionLabels[dim] || dim;
+      focusEl.textContent = label + ': ' + this.dimensions[dimIdx].average_radar_value.toFixed(2);
+    }
+    if (totalEl) {
+      totalEl.textContent = 'Total: ' + this.totalValue.toFixed(2);
+    }
+
+    this.highlightRadarDot(dim);
+  },
+
+  highlightRadarDot: function(dim) {
+    var dimOrder = this.dimOrder;
+    for (var i = 0; i < dimOrder.length; i++) {
+      var dot = document.getElementById('radar-dot-' + dimOrder[i]);
+      if (dot) {
+        dot.setAttribute('r', '3');
+        dot.setAttribute('stroke-width', '0.5');
+      }
+    }
+
+    var activeDot = document.getElementById('radar-dot-' + dim);
+    if (activeDot) {
+      activeDot.setAttribute('r', '5');
+      activeDot.setAttribute('stroke-width', '1.5');
+    }
+  },
+
+  onArrowUp: function() {
+    var idx = App.currentFocusIndex;
+    var total = App.focusableItems.length;
+    if (idx >= 3 && idx - 3 >= 0) {
+      App.moveFocus(-3);
+      this.updateRadarHighlight();
+    }
+  },
+
+  onArrowDown: function() {
+    var idx = App.currentFocusIndex;
+    var total = App.focusableItems.length;
+    if (idx < 3 && idx + 3 < total) {
+      App.moveFocus(3);
+      this.updateRadarHighlight();
+    }
+  },
+
+  onArrowLeft: function() {
+    var idx = App.currentFocusIndex;
+    if (idx % 3 !== 0) {
+      App.moveFocus(-1);
+      this.updateRadarHighlight();
+    }
+  },
+
+  onArrowRight: function() {
+    var idx = App.currentFocusIndex;
+    if (idx % 3 !== 2) {
+      App.moveFocus(1);
+      this.updateRadarHighlight();
+    }
   },
 
   onEnter: function() {
@@ -188,7 +388,6 @@ var RadarDetailPage = {
     }
     this.topCharts = [];
 
-    // Use pre-fetched data if available
     var cached = RadarPage.dimensionData[this.dimension];
     if (cached && cached.detail) {
       this.topCharts = cached.detail.top_charts ? cached.detail.top_charts : [];
@@ -303,7 +502,6 @@ var RadarRecPage = {
     }
     this.recommendations = [];
 
-    // Use pre-fetched data if available
     var cached = RadarPage.dimensionData[this.dimension];
     if (cached && cached.rec) {
       this.recommendations = cached.rec.recommendations ? cached.rec.recommendations : [];
