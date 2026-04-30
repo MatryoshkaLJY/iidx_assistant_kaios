@@ -65,6 +65,10 @@
 - KaiOS 2.5.2+ 设备（已在 Nokia 2720 上测试）
 - [iidx.pro](https://iidx.pro) 账号
 
+## 鸣谢
+
+- [ShawnIL](https://github.com/ShawnIL) — 提供 [iidx.pro](https://iidx.pro) 站点及数据支持
+
 ## 开发
 
 详细技术架构、模块说明、数据流见 [ARCHITECTURE.md](ARCHITECTURE.md)。
