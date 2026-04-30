@@ -8,6 +8,7 @@ var DifficultyPage = {
   groupKeys: [],
   currentGroupIndex: 0,
   currentSongs: [],
+  viewMode: 'list',
 
   // Table type definitions
   getTableTypes: function() {
@@ -325,6 +326,26 @@ var DifficultyPage = {
   },
 
   renderSongsPage: function() {
+    var savedRaw = localStorage.getItem('pocketiidx_diff_state_' + this.playStyle);
+    if (savedRaw) {
+      try {
+        var saved = JSON.parse(savedRaw);
+        if (saved.tableName === this.buildTableName()) {
+          this.viewMode = saved.viewMode || 'list';
+          this.currentGroupIndex = saved.groupIndex || 0;
+          if (this.currentGroupIndex >= this.groupKeys.length) {
+            this.currentGroupIndex = 0;
+          }
+        } else {
+          this.viewMode = 'list';
+        }
+      } catch (e) {
+        this.viewMode = 'list';
+      }
+    } else {
+      this.viewMode = 'list';
+    }
+
     var page = document.getElementById('page-diff-songs');
     var prev = document.getElementById('page-difficulty');
     if (prev) prev.classList.remove('active');
@@ -341,6 +362,36 @@ var DifficultyPage = {
     this.renderCurrentGroup();
   },
 
+  renderProgressBar: function(songs) {
+    var bar = document.getElementById('diff-progress-bar');
+    if (!bar) return;
+    if (!songs || songs.length === 0) {
+      bar.innerHTML = '';
+      return;
+    }
+    var counts = {};
+    var total = songs.length;
+    for (var i = 0; i < songs.length; i++) {
+      var flag = songs[i].best_score ? songs[i].best_score.clear_flag : 0;
+      counts[flag] = (counts[flag] || 0) + 1;
+    }
+    var flags = [];
+    for (var key in counts) {
+      if (counts.hasOwnProperty(key)) {
+        flags.push(parseInt(key, 10));
+      }
+    }
+    flags.sort(function(a, b) { return b - a; });
+    var html = '';
+    for (var i = 0; i < flags.length; i++) {
+      var flag = flags[i];
+      var pct = (counts[flag] / total * 100).toFixed(1);
+      var color = Utils.clearFlagColor(flag);
+      html += '<div class="diff-progress-segment" style="width:' + pct + '%;background:' + color + ';"></div>';
+    }
+    bar.innerHTML = html;
+  },
+
   renderCurrentGroup: function() {
     var groupBar = document.getElementById('diff-group-bar');
     var list = document.getElementById('diff-songs-list');
@@ -348,6 +399,7 @@ var DifficultyPage = {
     if (this.groupKeys.length === 0) {
       if (groupBar) groupBar.textContent = '无数据';
       list.innerHTML = '<li class="list-item">暂无歌曲数据</li>';
+      this.renderProgressBar([]);
       App.updateFocusableItems();
       App.currentFocusIndex = 0;
       App.renderFocus();
@@ -362,31 +414,80 @@ var DifficultyPage = {
       groupBar.innerHTML = '<span>1◀' + groupKey + ' (' + songs.length + '首) ' + (this.currentGroupIndex + 1) + '/' + this.groupKeys.length + '▶3</span><span class="list-counter"></span>';
     }
 
+    this.renderProgressBar(songs);
+
     list.innerHTML = '';
-    for (var i = 0; i < songs.length; i++) {
-      var song = songs[i];
-      var li = document.createElement('li');
-      li.className = 'list-item';
+    if (this.viewMode === 'grid') {
+      list.className = 'list diff-grid';
+      for (var i = 0; i < songs.length; i++) {
+        var song = songs[i];
+        var li = document.createElement('li');
+        li.className = 'list-item';
 
-      var title = Utils.escapeHtml(song.music_title || 'Unknown');
-      var diffText = Utils.chartDiffText(song.chart_difficulty);
-      var sub = 'Lv.' + song.level + diffText;
-      if (song.rank) sub += ' | ' + song.rank;
-      if (song.best_score && song.best_score.clear_flag !== undefined) {
-        sub += ' | ' + Utils.clearFlagText(song.best_score.clear_flag);
+        var title = Utils.escapeHtml(song.music_title || 'Unknown');
+        var diffText = Utils.chartDiffText(song.chart_difficulty);
+        var sub = diffText;
+        if (song.best_score && song.best_score.min_bp !== undefined) {
+          sub += ' BP:' + song.best_score.min_bp;
+        }
+
+        var clearFlag = song.best_score ? song.best_score.clear_flag : undefined;
+        var flagColor = Utils.clearFlagColor(clearFlag);
+        var r = parseInt(flagColor.substr(1, 2), 16);
+        var g = parseInt(flagColor.substr(3, 2), 16);
+        var b = parseInt(flagColor.substr(5, 2), 16);
+        var isFav = Storage.isFavorite(song.music_id, this.playStyle, song.chart_difficulty);
+        var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
+        li.style.backgroundColor = 'rgba(' + r + ',' + g + ',' + b + ',0.25)';
+        li.innerHTML = '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>' + favBar;
+        li.setAttribute('data-song-idx', i);
+        list.appendChild(li);
       }
+    } else {
+      list.className = 'list';
+      for (var i = 0; i < songs.length; i++) {
+        var song = songs[i];
+        var li = document.createElement('li');
+        li.className = 'list-item';
 
-      var clearFlag = song.best_score ? song.best_score.clear_flag : undefined;
-      var flagColor = Utils.clearFlagColor(clearFlag);
-      var isFav = Storage.isFavorite(song.music_id, this.playStyle, song.chart_difficulty);
-      var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
-      li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span>' + favBar + '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
-      li.setAttribute('data-song-idx', i);
-      list.appendChild(li);
+        var title = Utils.escapeHtml(song.music_title || 'Unknown');
+        var diffText = Utils.chartDiffText(song.chart_difficulty);
+        var sub = 'Lv.' + song.level + diffText;
+        if (song.best_score && song.best_score.min_bp !== undefined) {
+          sub += ' BP:' + song.best_score.min_bp;
+        }
+        if (song.rank) sub += ' | ' + song.rank;
+        if (song.best_score && song.best_score.clear_flag !== undefined) {
+          sub += ' | ' + Utils.clearFlagText(song.best_score.clear_flag);
+        }
+
+        var clearFlag = song.best_score ? song.best_score.clear_flag : undefined;
+        var flagColor = Utils.clearFlagColor(clearFlag);
+        var isFav = Storage.isFavorite(song.music_id, this.playStyle, song.chart_difficulty);
+        var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
+        li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span>' + favBar + '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
+        li.setAttribute('data-song-idx', i);
+        list.appendChild(li);
+      }
     }
 
     App.updateFocusableItems();
     App.currentFocusIndex = 0;
+    App.renderFocus();
+  },
+
+  toggleViewMode: function() {
+    var savedIdx = App.currentFocusIndex;
+    this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+    this.renderCurrentGroup();
+    var total = App.focusableItems.length;
+    if (savedIdx >= 0 && savedIdx < total) {
+      App.currentFocusIndex = savedIdx;
+    } else if (total > 0) {
+      App.currentFocusIndex = total - 1;
+    } else {
+      App.currentFocusIndex = 0;
+    }
     App.renderFocus();
   },
 
@@ -432,25 +533,36 @@ var DifficultyPage = {
   },
 
   onDigit: function(digit) {
-    if (this.step === 'songs' && this.groupKeys.length > 1) {
-      if (digit === 1) {
-        this.currentGroupIndex--;
-        if (this.currentGroupIndex < 0) {
-          this.currentGroupIndex = this.groupKeys.length - 1;
+    if (this.step === 'songs') {
+      if (digit === 2) {
+        this.toggleViewMode();
+      } else if (this.groupKeys.length > 1) {
+        if (digit === 1) {
+          this.currentGroupIndex--;
+          if (this.currentGroupIndex < 0) {
+            this.currentGroupIndex = this.groupKeys.length - 1;
+          }
+          this.renderCurrentGroup();
+        } else if (digit === 3) {
+          this.currentGroupIndex++;
+          if (this.currentGroupIndex >= this.groupKeys.length) {
+            this.currentGroupIndex = 0;
+          }
+          this.renderCurrentGroup();
         }
-        this.renderCurrentGroup();
-      } else if (digit === 3) {
-        this.currentGroupIndex++;
-        if (this.currentGroupIndex >= this.groupKeys.length) {
-          this.currentGroupIndex = 0;
-        }
-        this.renderCurrentGroup();
       }
     }
   },
 
   onBack: function() {
     if (this.step === 'songs') {
+      // Save browsing state before exiting
+      localStorage.setItem('pocketiidx_diff_state_' + this.playStyle, JSON.stringify({
+        tableName: this.buildTableName(),
+        groupIndex: this.currentGroupIndex,
+        viewMode: this.viewMode
+      }));
+
       // Return to difficulty selection
       var songsPage = document.getElementById('page-diff-songs');
       var diffPage = document.getElementById('page-difficulty');
@@ -486,6 +598,56 @@ App.pageHandlers['difficulty'] = DifficultyPage;
 var DiffSongsPage = {
   onShow: function() {
     // Handled by DifficultyPage
+  },
+
+  onArrowUp: function() {
+    if (DifficultyPage.viewMode === 'grid') {
+      var idx = App.currentFocusIndex;
+      if (idx >= 6) {
+        App.currentFocusIndex = idx - 6;
+        App.renderFocus();
+      }
+    } else {
+      App.moveFocus(-1);
+    }
+  },
+
+  onArrowDown: function() {
+    if (DifficultyPage.viewMode === 'grid') {
+      var idx = App.currentFocusIndex;
+      var total = App.focusableItems.length;
+      if (idx + 6 < total) {
+        App.currentFocusIndex = idx + 6;
+        App.renderFocus();
+      }
+    } else {
+      App.moveFocus(1);
+    }
+  },
+
+  onArrowLeft: function() {
+    if (DifficultyPage.viewMode === 'grid') {
+      var idx = App.currentFocusIndex;
+      if (idx % 6 !== 0) {
+        App.currentFocusIndex = idx - 1;
+        App.renderFocus();
+      }
+    } else {
+      App.moveFocus(-5);
+    }
+  },
+
+  onArrowRight: function() {
+    if (DifficultyPage.viewMode === 'grid') {
+      var idx = App.currentFocusIndex;
+      var total = App.focusableItems.length;
+      if (idx % 6 !== 5 && idx + 1 < total) {
+        App.currentFocusIndex = idx + 1;
+        App.renderFocus();
+      }
+    } else {
+      App.moveFocus(5);
+    }
   },
 
   onEnter: function() {
