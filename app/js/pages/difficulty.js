@@ -427,8 +427,8 @@ var DifficultyPage = {
         var title = Utils.escapeHtml(song.music_title || 'Unknown');
         var diffText = Utils.chartDiffText(song.chart_difficulty);
         var sub = diffText;
-        if (song.best_score && song.best_score.min_bp !== undefined) {
-          sub += ' BP:' + song.best_score.min_bp;
+        if (song.best_score && song.best_score.miss_count !== undefined) {
+          sub += '  ' + song.best_score.miss_count;
         }
 
         var clearFlag = song.best_score ? song.best_score.clear_flag : undefined;
@@ -453,8 +453,8 @@ var DifficultyPage = {
         var title = Utils.escapeHtml(song.music_title || 'Unknown');
         var diffText = Utils.chartDiffText(song.chart_difficulty);
         var sub = 'Lv.' + song.level + diffText;
-        if (song.best_score && song.best_score.min_bp !== undefined) {
-          sub += ' BP:' + song.best_score.min_bp;
+        if (song.best_score && song.best_score.miss_count !== undefined) {
+          sub += ' BP:' + song.best_score.miss_count;
         }
         if (song.rank) sub += ' | ' + song.rank;
         if (song.best_score && song.best_score.clear_flag !== undefined) {
