@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>PocketIIDX</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script type="text/javascript" src="js/polyfill.js"></script>
+</head>
+<body>
+  <!-- Login Page -->
+  <section id="page-login" class="page">
+    <div class="header">登录 iidx.pro</div>
+    <div class="content">
+      <div class="scrollable" id="login-content">
+        <div class="input-row" data-input="username">
+          <label>用户名</label>
+          <input type="text" id="login-username" placeholder="输入用户名">
+        </div>
+        <div class="input-row" data-input="password">
+          <label>密码</label>
+          <input type="password" id="login-password" placeholder="输入密码">
+        </div>
+        <div class="input-row checkbox-row" data-input="remember-username">
+          <label class="checkbox-label"><input type="checkbox" id="login-remember-username"> 记住用户名</label>
+        </div>
+        <div class="input-row checkbox-row" data-input="remember-password">
+          <label class="checkbox-label"><input type="checkbox" id="login-remember-password"> 记住密码</label>
+        </div>
+        <div class="input-row checkbox-row" data-input="auto-login">
+          <label class="checkbox-label"><input type="checkbox" id="login-auto-login"> 自动登录</label>
+        </div>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="login-soft-left"></div>
+      <div class="softkey-center" id="login-soft-center">登录</div>
+      <div class="softkey-right" id="login-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Menu Page -->
+  <section id="page-menu" class="page">
+    <div class="header">PocketIIDX</div>
+    <div class="content">
+      <div class="scrollable">
+        <ul class="list" id="menu-list">
+          <li class="list-item" data-action="sp-diff">SP 难度表</li>
+          <li class="list-item" data-action="dp-diff">DP 难度表</li>
+          <li class="list-item" data-action="sp-rec">SP 练习推荐</li>
+          <li class="list-item" data-action="dp-rec">DP 练习推荐</li>
+          <li class="list-item" data-action="search">歌曲搜索</li>
+        </ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="menu-soft-left"></div>
+      <div class="softkey-center" id="menu-soft-center">选择</div>
+      <div class="softkey-right" id="menu-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Difficulty Selection Page -->
+  <section id="page-difficulty" class="page">
+    <div class="header" id="diff-header">难度表</div>
+    <div class="content">
+      <div class="scrollable">
+        <ul class="list" id="diff-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="diff-soft-left">返回</div>
+      <div class="softkey-center" id="diff-soft-center">选择</div>
+      <div class="softkey-right" id="diff-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Difficulty Table Songs Page -->
+  <section id="page-diff-songs" class="page">
+    <div class="header" id="diff-songs-header">歌曲列表</div>
+    <div class="info-bar" id="diff-group-bar"></div>
+    <div class="content" style="height: 212px;">
+      <div class="scrollable">
+        <ul class="list" id="diff-songs-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="diff-songs-soft-left">返回</div>
+      <div class="softkey-center" id="diff-songs-soft-center">查看</div>
+      <div class="softkey-right" id="diff-songs-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Recommendation Page -->
+  <section id="page-recommend" class="page">
+    <div class="header" id="rec-header">练习推荐</div>
+    <div class="content">
+      <div class="scrollable">
+        <ul class="list" id="rec-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="rec-soft-left">返回</div>
+      <div class="softkey-center" id="rec-soft-center">选择</div>
+      <div class="softkey-right" id="rec-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Recommendation Songs Page -->
+  <section id="page-rec-songs" class="page">
+    <div class="header" id="rec-songs-header">推荐歌曲</div>
+    <div class="info-bar" id="rec-songs-bar"><span class="list-counter"></span></div>
+    <div class="content" style="height: 212px;">
+      <div class="scrollable">
+        <ul class="list" id="rec-songs-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="rec-songs-soft-left">返回</div>
+      <div class="softkey-center" id="rec-songs-soft-center">查看</div>
+      <div class="softkey-right" id="rec-songs-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Search Page -->
+  <section id="page-search" class="page">
+    <div class="header">歌曲搜索</div>
+    <div class="content">
+      <div class="scrollable">
+        <div class="input-row" data-input="keyword">
+          <label>关键词</label>
+          <input type="text" id="search-input" placeholder="曲名/艺术家/流派">
+        </div>
+        <div id="search-status" class="info-bar" style="display:none;"></div>
+        <ul class="list" id="search-results"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="search-soft-left">返回</div>
+      <div class="softkey-center" id="search-soft-center">搜索</div>
+      <div class="softkey-right" id="search-soft-right">刷新</div>
+    </div>
+  </section>
+
+  <!-- Song Detail Page -->
+  <section id="page-song" class="page">
+    <div class="header" id="song-header">歌曲详情</div>
+    <div class="content">
+      <div class="scrollable" id="song-content"></div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="song-soft-left">返回</div>
+      <div class="softkey-center" id="song-soft-center"></div>
+      <div class="softkey-right" id="song-soft-right">切换谱面</div>
+    </div>
+  </section>
+
+  <!-- App Menu Overlay -->
+  <div id="app-menu" class="app-menu" style="display:none;">
+    <div class="app-menu-bg"></div>
+    <ul class="app-menu-list" id="app-menu-list">
+      <li class="app-menu-item" data-menu-cmd="profile">用户信息</li>
+      <li class="app-menu-item" data-menu-cmd="logout">退出登录</li>
+    </ul>
+  </div>
+
+  <!-- Song Chart Switch Menu -->
+  <div id="song-menu" class="app-menu" style="display:none;">
+    <div class="app-menu-bg"></div>
+    <ul class="app-menu-list" id="song-menu-list"></ul>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display:none;">
+    <div class="loading-text" id="loading-text">加载中...</div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="text/javascript" src="js/utils.js"></script>
+  <script type="text/javascript" src="js/storage.js"></script>
+  <script type="text/javascript" src="js/api.js"></script>
+  <script type="text/javascript" src="js/app.js"></script>
+  <script type="text/javascript" src="js/pages/login.js"></script>
+  <script type="text/javascript" src="js/pages/menu.js"></script>
+  <script type="text/javascript" src="js/pages/difficulty.js"></script>
+  <script type="text/javascript" src="js/pages/recommend.js"></script>
+  <script type="text/javascript" src="js/pages/search.js"></script>
+  <script type="text/javascript" src="js/pages/song.js"></script>
+  <script type="text/javascript" src="js/init.js"></script>
+</body>
+</html>
