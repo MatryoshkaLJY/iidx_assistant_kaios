@@ -40,6 +40,16 @@ var RecommendPage = {
 
   loadRecommendations: function() {
     var self = this;
+
+    // Try cache first
+    var cache = Storage.getRecCache(this.playStyle, this.selectedMode.id);
+    if (cache && App.isCacheValid(cache)) {
+      self.songs = cache.data;
+      self.step = 'songs';
+      self.renderSongsPage();
+      return;
+    }
+
     App.showLoading('加载中...');
 
     Api.getRecommendations(this.playStyle, this.selectedMode.id, function(error, result) {
@@ -71,6 +81,14 @@ var RecommendPage = {
       self.songs = Utils.sortBy(songs, 'recommendation_score', true);
       self.step = 'songs';
       self.renderSongsPage();
+
+      // Save to cache
+      if (App.syncStatusTimestamp > 0) {
+        Storage.setRecCache(self.playStyle, self.selectedMode.id, {
+          syncTimestamp: App.syncStatusTimestamp,
+          data: self.songs
+        });
+      }
     });
   },
 

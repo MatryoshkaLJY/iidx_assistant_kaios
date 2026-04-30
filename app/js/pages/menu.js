@@ -160,7 +160,7 @@ var MenuPage = {
     if (cmd === 'logout') {
       Storage.clearToken();
       Storage.clearCredentials();
-      Storage.clearAllRadarCaches();
+      Storage.clearUserCaches();
       App.navStack = [];
       App.showPage('login');
     } else if (cmd === 'profile') {

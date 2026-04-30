@@ -50,6 +50,17 @@ var SearchPage = {
     if (this.isLoading) return;
     this.isLoading = true;
 
+    // Try cache first
+    var cached = Storage.getCachedMusicList();
+    var meta = Storage.getMusicCacheMeta();
+    if (cached && cached.length > 0 && meta && App.isCacheValid(meta)) {
+      self.musicList = cached;
+      self.isLoading = false;
+      self.updateStatus('曲库已缓存: ' + cached.length + '首');
+      if (callback) callback(null, cached);
+      return;
+    }
+
     App.showLoading('加载曲库...');
 
     Api.getMusicList(function(error, result) {
@@ -94,6 +105,13 @@ var SearchPage = {
       self.musicList = trimmed;
       Storage.setCachedMusicList(trimmed);
       self.updateStatus('曲库已缓存: ' + trimmed.length + '首');
+
+      // Save sync timestamp
+      if (App.syncStatusTimestamp > 0) {
+        Storage.setMusicCacheMeta({
+          syncTimestamp: App.syncStatusTimestamp
+        });
+      }
 
       if (callback) callback(null, trimmed);
     });

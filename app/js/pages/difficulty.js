@@ -267,6 +267,28 @@ var DifficultyPage = {
     var tableName = this.buildTableName();
     var self = this;
 
+    // Try cache first
+    var cache = Storage.getDiffCache(tableName);
+    if (cache && App.isCacheValid(cache)) {
+      self.tableData = cache.data;
+      self.step = 'songs';
+
+      // Extract group keys
+      self.groupKeys = [];
+      if (self.tableData && self.tableData.rank_groups) {
+        for (var key in self.tableData.rank_groups) {
+          if (self.tableData.rank_groups.hasOwnProperty(key)) {
+            self.groupKeys.push(key);
+          }
+        }
+      }
+      self.groupKeys.sort();
+      self.currentGroupIndex = 0;
+
+      self.renderSongsPage();
+      return;
+    }
+
     App.showLoading('加载中...');
 
     Api.getDifficultyTable(tableName, function(error, result) {
@@ -293,6 +315,14 @@ var DifficultyPage = {
       self.currentGroupIndex = 0;
 
       self.renderSongsPage();
+
+      // Save to cache
+      if (App.syncStatusTimestamp > 0) {
+        Storage.setDiffCache(tableName, {
+          syncTimestamp: App.syncStatusTimestamp,
+          data: result
+        });
+      }
     });
   },
 

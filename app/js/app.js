@@ -260,6 +260,13 @@ var App = {
     });
   },
 
+  // Cache validation
+  isCacheValid: function(cache) {
+    if (!cache) return false;
+    if (this.syncStatusTimestamp === 0) return false;
+    return cache.syncTimestamp === this.syncStatusTimestamp;
+  },
+
   // Sync status
   fetchSyncStatus: function() {
     var self = this;

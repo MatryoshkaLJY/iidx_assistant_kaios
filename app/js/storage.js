@@ -178,5 +178,112 @@ var Storage = {
   clearAllRadarCaches: function() {
     this.clearRadarCache(0);
     this.clearRadarCache(1);
+  },
+
+  // Difficulty table cache
+  DIFF_CACHE_PREFIX: 'pocketiidx_diff_cache_',
+
+  getDiffCache: function(tableName) {
+    try {
+      var data = localStorage.getItem(this.DIFF_CACHE_PREFIX + tableName);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  setDiffCache: function(tableName, cacheData) {
+    try {
+      localStorage.setItem(this.DIFF_CACHE_PREFIX + tableName, JSON.stringify(cacheData));
+    } catch (e) {}
+  },
+
+  clearDiffCache: function(tableName) {
+    try {
+      localStorage.removeItem(this.DIFF_CACHE_PREFIX + tableName);
+    } catch (e) {}
+  },
+
+  clearAllDiffCaches: function() {
+    try {
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf(this.DIFF_CACHE_PREFIX) === 0) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
+  },
+
+  // Recommendation cache
+  REC_CACHE_PREFIX: 'pocketiidx_rec_cache_',
+
+  getRecCache: function(playStyle, mode) {
+    try {
+      var key = this.REC_CACHE_PREFIX + playStyle + '_' + mode;
+      var data = localStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  setRecCache: function(playStyle, mode, cacheData) {
+    try {
+      var key = this.REC_CACHE_PREFIX + playStyle + '_' + mode;
+      localStorage.setItem(key, JSON.stringify(cacheData));
+    } catch (e) {}
+  },
+
+  clearRecCache: function(playStyle, mode) {
+    try {
+      var key = this.REC_CACHE_PREFIX + playStyle + '_' + mode;
+      localStorage.removeItem(key);
+    } catch (e) {}
+  },
+
+  clearAllRecCaches: function() {
+    try {
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf(this.REC_CACHE_PREFIX) === 0) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (e) {}
+  },
+
+  // Music cache meta (for sync timestamp)
+  MUSIC_CACHE_META_KEY: 'pocketiidx_music_cache_meta',
+
+  getMusicCacheMeta: function() {
+    try {
+      var data = localStorage.getItem(this.MUSIC_CACHE_META_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  setMusicCacheMeta: function(meta) {
+    try {
+      localStorage.setItem(this.MUSIC_CACHE_META_KEY, JSON.stringify(meta));
+    } catch (e) {}
+  },
+
+  clearMusicCacheMeta: function() {
+    try {
+      localStorage.removeItem(this.MUSIC_CACHE_META_KEY);
+    } catch (e) {}
+  },
+
+  // Clear all user-specific caches
+  clearUserCaches: function() {
+    this.clearAllRadarCaches();
+    this.clearAllDiffCaches();
+    this.clearAllRecCaches();
   }
 };

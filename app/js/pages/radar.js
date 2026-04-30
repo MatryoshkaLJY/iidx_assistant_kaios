@@ -29,12 +29,6 @@ var RadarPage = {
     }
   },
 
-  isCacheValid: function(cache) {
-    if (!cache || !cache.summary || !cache.dimensions) return false;
-    if (App.syncStatusTimestamp === 0) return false;
-    return cache.syncTimestamp === App.syncStatusTimestamp;
-  },
-
   saveRadarCache: function() {
     if (App.syncStatusTimestamp === 0) return;
     if (!this.radarData || this.dimensions.length === 0) return;
@@ -52,7 +46,7 @@ var RadarPage = {
 
     // Try cache first
     var cache = Storage.getRadarCache(this.playStyle);
-    if (cache && self.isCacheValid(cache)) {
+    if (cache && App.isCacheValid(cache)) {
       self.radarData = cache.summary;
       self.dimensions = cache.dimensions;
       self.dimensionData = cache.dimensionData;
