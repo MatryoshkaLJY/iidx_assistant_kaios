@@ -17,7 +17,7 @@ html, body {
 .page {
   display: none;
   width: 240px;
-  height: 290px;
+  height: 294px;
   overflow: hidden;
   position: relative;
 }
@@ -42,7 +42,7 @@ html, body {
 
 /* Content area */
 .content {
-  height: 232px;
+  height: 236px;
   overflow: hidden;
   position: relative;
 }
@@ -56,13 +56,13 @@ html, body {
   height: 30px;
   background: #ccc;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0 4px;
   border-top: 1px solid #999;
 }
 
 .softkey-left, .softkey-center, .softkey-right {
+  flex: 1;
   font-size: 12px;
   color: #000;
   white-space: nowrap;
@@ -71,18 +71,14 @@ html, body {
 }
 
 .softkey-left {
-  max-width: 70px;
   text-align: left;
 }
 
 .softkey-center {
-  max-width: 90px;
   text-align: center;
-  font-weight: bold;
 }
 
 .softkey-right {
-  max-width: 70px;
   text-align: right;
 }
 
@@ -354,7 +350,7 @@ html, body {
 }
 
 .menu-content {
-  height: 232px;
+  height: 236px;
   overflow: hidden;
 }
 
@@ -374,33 +370,23 @@ html, body {
   justify-content: center;
   text-align: center;
   padding: 4px;
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.menu-cell:nth-child(3n) {
-  border-right: none;
-}
-
-.menu-cell:nth-child(7),
-.menu-cell:nth-child(8),
-.menu-cell:nth-child(9) {
   border-bottom: none;
 }
 
-.menu-num {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 4px;
-}
-
 .menu-label {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 11px;
+  line-height: 14px;
+  margin-top: 2px;
 }
 
-.menu-cell.focused .menu-num {
+.menu-cell.focused .menu-label {
   color: #fff;
+}
+
+.menu-icon {
+  width: 54px;
+  height: 54px;
+  image-rendering: auto;
 }
 
 /* Info bar */
