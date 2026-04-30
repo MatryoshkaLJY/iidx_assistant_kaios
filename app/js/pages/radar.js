@@ -25,7 +25,7 @@ var RadarPage = {
     chord: '#B2E070'
   },
 
-  dimOrder: ['notes', 'peak', 'scratch', 'soflan', 'charge', 'chord'],
+  dimOrder: ['notes', 'chord', 'charge', 'soflan', 'scratch', 'peak'],
 
   onShow: function(data) {
     if (data) {
@@ -416,10 +416,10 @@ var RadarDetailPage = {
 
   renderDetailList: function() {
     var header = document.getElementById('radar-detail-header');
-    if (header) header.textContent = (this.playStyle === 0 ? 'SP' : 'DP') + ' ' + this.dimensionLabel;
+    if (header) header.textContent = (this.playStyle === 0 ? 'SP' : 'DP') + ' ' + this.dimensionLabel + ' 平均: ' + this.averageValue.toFixed(2);
 
     var bar = document.getElementById('radar-detail-bar');
-    if (bar) bar.innerHTML = '<span>平均: ' + this.averageValue.toFixed(2) + '</span><span class="list-counter"></span>';
+    if (bar) bar.innerHTML = '<span>3=推荐</span><span class="list-counter"></span>';
 
     var list = document.getElementById('radar-detail-list');
     list.innerHTML = '';
@@ -436,14 +436,16 @@ var RadarDetailPage = {
         var title = Utils.escapeHtml(best.music_title || 'Unknown');
         var diffText = Utils.chartDiffText(best.chart_difficulty);
         var sub = 'Lv.' + best.difficulty_level + diffText;
-        sub += ' | 雷达值: ' + (chart.radar_value !== undefined ? chart.radar_value.toFixed(2) : '-');
-        sub += ' | 最大: ' + (chart.max_radar_value !== undefined ? chart.max_radar_value.toFixed(2) : '-');
+        sub += ' | ' + (chart.radar_value !== undefined ? chart.radar_value.toFixed(2) : '-');
+        sub += ' / ' + (chart.max_radar_value !== undefined ? chart.max_radar_value.toFixed(2) : '-');
         if (best.detailed_dj_level) {
           sub += ' | ' + best.detailed_dj_level;
         }
 
         var flagColor = Utils.clearFlagColor(best.clear_flag);
-        li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span><span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
+        var isFav = Storage.isFavorite(best.music_id, this.playStyle, best.chart_difficulty);
+        var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
+        li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span>' + favBar + '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
         li.setAttribute('data-chart-idx', i);
         list.appendChild(li);
       }
@@ -473,12 +475,64 @@ var RadarDetailPage = {
     App.goBack();
   },
 
+  updateSoftkeyLabel: function() {
+    var item = App.getFocusedItem();
+    var label = '';
+    if (item) {
+      var chartIdx = parseInt(item.getAttribute('data-chart-idx'), 10);
+      var chart = this.topCharts[chartIdx];
+      if (chart && chart.best_score) {
+        var isFav = Storage.isFavorite(chart.best_score.music_id, this.playStyle, chart.best_score.chart_difficulty);
+        label = isFav ? '取消收藏' : '收藏';
+      }
+    }
+    var el = document.getElementById('radar-detail-soft-right');
+    if (el) el.textContent = label;
+  },
+
+  onFocusChanged: function() {
+    this.updateSoftkeyLabel();
+  },
+
   onSoftRight: function() {
-    App.showPage('radar-rec', {
-      playStyle: this.playStyle,
-      dimension: this.dimension,
-      dimensionLabel: this.dimensionLabel
-    });
+    var item = App.getFocusedItem();
+    if (!item) return;
+    var chartIdx = parseInt(item.getAttribute('data-chart-idx'), 10);
+    var chart = this.topCharts[chartIdx];
+    if (!chart || !chart.best_score) return;
+    var isFav = Storage.toggleFavorite(chart.best_score.music_id, this.playStyle, chart.best_score.chart_difficulty, chart.best_score.music_title);
+    var existing = item.querySelector('.favorite-bar');
+    if (isFav) {
+      if (!existing) {
+        var bar = document.createElement('span');
+        bar.className = 'favorite-bar';
+        item.appendChild(bar);
+      }
+    } else {
+      if (existing) existing.parentNode.removeChild(existing);
+    }
+    this.updateSoftkeyLabel();
+  },
+
+  onDigit: function(digit) {
+    if (digit === 3) {
+      var detailPage = document.getElementById('page-radar-detail');
+      var recPage = document.getElementById('page-radar-rec');
+      if (detailPage) detailPage.classList.remove('active');
+      if (recPage) recPage.classList.add('active');
+      App.currentPage = 'radar-rec';
+      App.currentFocusIndex = 0;
+      if (App.navStack.length > 0) {
+        App.navStack[App.navStack.length - 1] = 'radar-rec';
+      }
+      RadarRecPage.onShow({
+        playStyle: this.playStyle,
+        dimension: this.dimension,
+        dimensionLabel: this.dimensionLabel
+      });
+      App.updateFocusableItems();
+      App.renderFocus();
+    }
   },
 
   onBack: function() {
@@ -533,7 +587,7 @@ var RadarRecPage = {
     if (header) header.textContent = (this.playStyle === 0 ? 'SP' : 'DP') + ' ' + this.dimensionLabel + ' 推荐';
 
     var bar = document.getElementById('radar-rec-bar');
-    if (bar) bar.innerHTML = '<span class="list-counter"></span>';
+    if (bar) bar.innerHTML = '<span>1=详情</span><span class="list-counter"></span>';
 
     var list = document.getElementById('radar-rec-list');
     list.innerHTML = '';
@@ -556,7 +610,9 @@ var RadarRecPage = {
           sub += ' | 目标: ' + rec.target_detailed_dj_level;
         }
 
-        li.innerHTML = '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
+        var isFav = Storage.isFavorite(rec.music_id, this.playStyle, rec.chart_difficulty);
+        var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
+        li.innerHTML = favBar + '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
         li.setAttribute('data-rec-idx', i);
         list.appendChild(li);
       }
@@ -580,6 +636,74 @@ var RadarRecPage = {
       playStyle: this.playStyle,
       chartDifficulty: rec.chart_difficulty
     });
+  },
+
+  updateSoftkeyLabel: function() {
+    var item = App.getFocusedItem();
+    var label = '';
+    if (item) {
+      var recIdx = parseInt(item.getAttribute('data-rec-idx'), 10);
+      var rec = this.recommendations[recIdx];
+      if (rec) {
+        var isFav = Storage.isFavorite(rec.music_id, this.playStyle, rec.chart_difficulty);
+        label = isFav ? '取消收藏' : '收藏';
+      }
+    }
+    var el = document.getElementById('radar-rec-soft-right');
+    if (el) el.textContent = label;
+  },
+
+  onFocusChanged: function() {
+    this.updateSoftkeyLabel();
+  },
+
+  onSoftRight: function() {
+    var item = App.getFocusedItem();
+    if (!item) return;
+    var recIdx = parseInt(item.getAttribute('data-rec-idx'), 10);
+    var rec = this.recommendations[recIdx];
+    if (!rec) return;
+    var isFav = Storage.toggleFavorite(rec.music_id, this.playStyle, rec.chart_difficulty, rec.music_title);
+    var existing = item.querySelector('.favorite-bar');
+    if (isFav) {
+      if (!existing) {
+        var bar = document.createElement('span');
+        bar.className = 'favorite-bar';
+        item.appendChild(bar);
+      }
+    } else {
+      if (existing) existing.parentNode.removeChild(existing);
+    }
+    this.updateSoftkeyLabel();
+  },
+
+  onDigit: function(digit) {
+    if (digit === 1) {
+      var avgValue = 0;
+      for (var i = 0; i < RadarPage.dimensions.length; i++) {
+        if (RadarPage.dimensions[i].dimension === this.dimension) {
+          avgValue = RadarPage.dimensions[i].average_radar_value;
+          break;
+        }
+      }
+      var recPage = document.getElementById('page-radar-rec');
+      var detailPage = document.getElementById('page-radar-detail');
+      if (recPage) recPage.classList.remove('active');
+      if (detailPage) detailPage.classList.add('active');
+      App.currentPage = 'radar-detail';
+      App.currentFocusIndex = 0;
+      if (App.navStack.length > 0) {
+        App.navStack[App.navStack.length - 1] = 'radar-detail';
+      }
+      RadarDetailPage.onShow({
+        playStyle: this.playStyle,
+        dimension: this.dimension,
+        dimensionLabel: this.dimensionLabel,
+        averageValue: avgValue
+      });
+      App.updateFocusableItems();
+      App.renderFocus();
+    }
   },
 
   onSoftLeft: function() {

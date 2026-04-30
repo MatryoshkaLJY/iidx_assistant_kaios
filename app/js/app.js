@@ -160,6 +160,12 @@ var App = {
       var current = total > 0 ? (this.currentFocusIndex + 1) : 0;
       counterEl.textContent = current + '/' + total;
     }
+
+    // Notify page handler of focus change
+    var handler = this.pageHandlers[this.currentPage];
+    if (handler && handler.onFocusChanged) {
+      handler.onFocusChanged();
+    }
   },
 
   moveFocus: function(delta) {

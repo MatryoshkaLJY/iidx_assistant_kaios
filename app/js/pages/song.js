@@ -51,7 +51,9 @@ var SongPage = {
     var styleText = Utils.playStyleText(this.playStyle);
     var level = this.data.chart_info ? this.data.chart_info.level : '';
     var levelStr = level ? ' Lv.' + level : '';
-    header.textContent = Utils.truncate(info.title || '歌曲详情', 10) + ' (' + styleText + diffText + levelStr + ')';
+    var isFav = Storage.isFavorite(this.musicId, this.playStyle, this.chartDifficulty);
+    var favPrefix = isFav ? '★ ' : '';
+    header.textContent = favPrefix + Utils.truncate(info.title || '歌曲详情', 10) + ' (' + styleText + diffText + levelStr + ')';
     content.innerHTML = '';
 
     // Music Info Section (artist + genre only)

@@ -282,7 +282,6 @@ var DifficultyPage = {
           }
         }
       }
-      self.groupKeys.sort();
       self.currentGroupIndex = 0;
 
       self.renderSongsPage();
@@ -311,7 +310,6 @@ var DifficultyPage = {
           }
         }
       }
-      self.groupKeys.sort();
       self.currentGroupIndex = 0;
 
       self.renderSongsPage();
@@ -361,7 +359,7 @@ var DifficultyPage = {
     this.currentSongs = songs;
 
     if (groupBar) {
-      groupBar.innerHTML = '<span>◀ ' + groupKey + ' (' + songs.length + '首) ' + (this.currentGroupIndex + 1) + '/' + this.groupKeys.length + ' ▶</span><span class="list-counter"></span>';
+      groupBar.innerHTML = '<span>1◀' + groupKey + ' (' + songs.length + '首) ' + (this.currentGroupIndex + 1) + '/' + this.groupKeys.length + '▶3</span><span class="list-counter"></span>';
     }
 
     list.innerHTML = '';
@@ -380,7 +378,9 @@ var DifficultyPage = {
 
       var clearFlag = song.best_score ? song.best_score.clear_flag : undefined;
       var flagColor = Utils.clearFlagColor(clearFlag);
-      li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span><span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
+      var isFav = Storage.isFavorite(song.music_id, this.playStyle, song.chart_difficulty);
+      var favBar = isFav ? '<span class="favorite-bar"></span>' : '';
+      li.innerHTML = '<span class="clear-flag-bar" style="background:' + flagColor + ';"></span>' + favBar + '<span class="item-title">' + title + '</span><span class="sub">' + sub + '</span>';
       li.setAttribute('data-song-idx', i);
       list.appendChild(li);
     }
@@ -431,23 +431,21 @@ var DifficultyPage = {
     }
   },
 
-  onArrowLeft: function() {
+  onDigit: function(digit) {
     if (this.step === 'songs' && this.groupKeys.length > 1) {
-      this.currentGroupIndex--;
-      if (this.currentGroupIndex < 0) {
-        this.currentGroupIndex = this.groupKeys.length - 1;
+      if (digit === 1) {
+        this.currentGroupIndex--;
+        if (this.currentGroupIndex < 0) {
+          this.currentGroupIndex = this.groupKeys.length - 1;
+        }
+        this.renderCurrentGroup();
+      } else if (digit === 3) {
+        this.currentGroupIndex++;
+        if (this.currentGroupIndex >= this.groupKeys.length) {
+          this.currentGroupIndex = 0;
+        }
+        this.renderCurrentGroup();
       }
-      this.renderCurrentGroup();
-    }
-  },
-
-  onArrowRight: function() {
-    if (this.step === 'songs' && this.groupKeys.length > 1) {
-      this.currentGroupIndex++;
-      if (this.currentGroupIndex >= this.groupKeys.length) {
-        this.currentGroupIndex = 0;
-      }
-      this.renderCurrentGroup();
     }
   },
 
@@ -505,12 +503,47 @@ var DiffSongsPage = {
     });
   },
 
-  onArrowLeft: function() {
-    DifficultyPage.onArrowLeft();
+  onDigit: function(digit) {
+    DifficultyPage.onDigit(digit);
   },
 
-  onArrowRight: function() {
-    DifficultyPage.onArrowRight();
+  updateSoftkeyLabel: function() {
+    var item = App.getFocusedItem();
+    var label = '';
+    if (item) {
+      var songIdx = parseInt(item.getAttribute('data-song-idx'), 10);
+      var song = DifficultyPage.currentSongs[songIdx];
+      if (song) {
+        var isFav = Storage.isFavorite(song.music_id, DifficultyPage.playStyle, song.chart_difficulty);
+        label = isFav ? '取消收藏' : '收藏';
+      }
+    }
+    var el = document.getElementById('diff-songs-soft-right');
+    if (el) el.textContent = label;
+  },
+
+  onFocusChanged: function() {
+    this.updateSoftkeyLabel();
+  },
+
+  onSoftRight: function() {
+    var item = App.getFocusedItem();
+    if (!item) return;
+    var songIdx = parseInt(item.getAttribute('data-song-idx'), 10);
+    var song = DifficultyPage.currentSongs[songIdx];
+    if (!song) return;
+    var isFav = Storage.toggleFavorite(song.music_id, DifficultyPage.playStyle, song.chart_difficulty, song.music_title);
+    var existing = item.querySelector('.favorite-bar');
+    if (isFav) {
+      if (!existing) {
+        var bar = document.createElement('span');
+        bar.className = 'favorite-bar';
+        item.appendChild(bar);
+      }
+    } else {
+      if (existing) existing.parentNode.removeChild(existing);
+    }
+    this.updateSoftkeyLabel();
   },
 
   onSoftLeft: function() {

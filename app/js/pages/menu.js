@@ -39,7 +39,7 @@ var MenuPage = {
         alert('功能开发中');
         break;
       case 'favorites':
-        alert('功能开发中');
+        App.showPage('favorites');
         break;
     }
   },

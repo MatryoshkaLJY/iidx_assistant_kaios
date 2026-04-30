@@ -28,7 +28,8 @@ PocketIIDX 是一个基于 KaiOS 2.5.2 的移动端应用，用于在 Nokia 2720
 ### 3. 难度表（Difficulty Tables）
 - 支持多种难度表：温火、PPI、BPI、SP12、CPI、人气表、ELO、SNJ、ZRIS、ERETER
 - 状态机：type -> level -> lamp -> songs
-- 左右键切换 rank_groups
+- 数字键 `1`/`3` 切换 rank_groups
+- 左右键全局统一为快速跳转（±5 项）
 - 点击进入歌曲详情
 
 ### 4. 练习推荐（Recommendations）
@@ -45,13 +46,23 @@ PocketIIDX 是一个基于 KaiOS 2.5.2 的移动端应用，用于在 Nokia 2720
 - 显示最佳成绩/最近成绩
 - 难度表条目列表
 - 右软键切换谱面
+- 收藏状态在标题前显示 ★ 标记
+
+### 7. 收藏夹（Favorites）
+- 在难度表歌曲列表、练习推荐列表、雷达推荐列表中，按右软键 toggle 收藏
+- 收藏歌曲右侧显示金色竖条（`.favorite-bar`，与左侧 `.clear-flag-bar` 对称）
+- 右软键标签随焦点动态切换 "收藏"/"取消收藏"
+- 菜单进入收藏夹页面，按标题字母排序，右软键取消收藏，Enter 进入歌曲详情
+- 收藏键：`musicId + playStyle + chartDifficulty`（支持同一歌曲不同谱面分别收藏）
 
 ### 7. Notes Radar（核心功能）
 - 6 维度雷达：Notes、Scratch、Peak、Chord、Charge、Soflan
 - 支持 SP/DP 两种 playStyle
 - 雷达概览页：显示各维度平均值
-- 维度详情页：该维度 Top Charts 列表
+- 维度详情页：该维度 Top Charts 列表，头部显示维度平均值
 - 维度推荐页：该维度的练习推荐歌曲
+- **数字键切换**：在维度详情页按 `3` 进入推荐页，在推荐页按 `1` 返回详情页；切换不叠加导航栈（按 Back 直接回到雷达概览）
+- **收藏**：维度详情页和推荐页均支持右软键收藏/取消收藏
 - **懒加载 + 缓存优化**：进入雷达页时并行预取全部 6 个维度的详情和推荐（共 12 个请求）
 
 ## 缓存策略
@@ -74,9 +85,10 @@ PocketIIDX 是一个基于 KaiOS 2.5.2 的移动端应用，用于在 Nokia 2720
 | 练习推荐 | `pocketiidx_rec_cache_` | songs 数组 (按 playStyle_mode) |
 | 曲库 | `pocketiidx_music_cache` | 裁剪后的歌曲数组 |
 | 曲库元信息 | `pocketiidx_music_cache_meta` | syncTimestamp |
+| 收藏夹 | `pocketiidx_favorites` | 对象数组 `{musicId, playStyle, chartDifficulty, title}` |
 
 ### 缓存清除
-- 退出登录时清除所有用户相关缓存（radar + diff + rec）
+- 退出登录时清除所有用户相关缓存（radar + diff + rec + favorites）
 - 曲库缓存为公共数据，退出登录时保留
 
 ## API 接口
@@ -114,6 +126,7 @@ app/
 │       ├── recommend.js    # 推荐模式选择 + 歌曲列表
 │       ├── search.js       # 搜索页
 │       ├── radar.js        # 雷达概览 + 维度详情 + 维度推荐
+│       ├── favorites.js    # 收藏夹页面
 │       └── song.js         # 歌曲详情页
 └── manifest.webapp         # KaiOS 应用清单
 ```
@@ -126,10 +139,12 @@ app/
 - `onShow(data)` — 页面显示时调用
 - `onEnter()` — 按确定键时调用
 - `onArrowUp/Down/Left/Right()` — 方向键
+- `onDigit(digit)` — 数字键 1-9
 - `onSoftLeft/SoftRight()` — 软键（F1/F2）
 - `onBack()` — 返回键，返回 true 阻止默认 goBack
+- `onFocusChanged()` — 焦点移动后调用（由 `App.renderFocus()` 触发），用于动态更新软键标签等
 
-**导航栈：** `App.navStack` 记录访问历史，`App.showPage()` 切换页面，`App.goBack()` 返回上一页。
+**导航栈：** `App.navStack` 记录访问历史，`App.showPage()` 切换页面并自动入栈，`App.goBack()` 返回上一页。部分子页面（`diff-songs`、`rec-songs`）手动操作 DOM 并入栈；`radar-detail` 与 `radar-rec` 互切时采用栈顶替换（不入栈），按 Back 直接回到父页面。
 
 **焦点系统：** `App.focusableItems` 为当前页面所有 `.list-item` 和 `.input-row`，上下键循环移动焦点，自动滚动到可视区域。
 

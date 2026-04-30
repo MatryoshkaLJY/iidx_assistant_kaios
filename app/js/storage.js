@@ -285,6 +285,7 @@ var Storage = {
     this.clearAllRadarCaches();
     this.clearAllDiffCaches();
     this.clearAllRecCaches();
+    this.clearFavorites();
   },
 
   // Clear all caches including music cache
@@ -292,6 +293,61 @@ var Storage = {
     this.clearUserCaches();
     this.clearCachedMusicList();
     this.clearMusicCacheMeta();
+  },
+
+  // Favorites storage
+  FAVORITES_KEY: 'pocketiidx_favorites',
+
+  getFavorites: function() {
+    try {
+      var data = localStorage.getItem(this.FAVORITES_KEY);
+      if (data) return JSON.parse(data);
+    } catch (e) {}
+    return [];
+  },
+
+  setFavorites: function(items) {
+    try {
+      localStorage.setItem(this.FAVORITES_KEY, JSON.stringify(items));
+    } catch (e) {}
+  },
+
+  isFavorite: function(musicId, playStyle, chartDifficulty) {
+    var favorites = this.getFavorites();
+    for (var i = 0; i < favorites.length; i++) {
+      var f = favorites[i];
+      if (f.musicId === musicId && f.playStyle === playStyle && f.chartDifficulty === chartDifficulty) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  toggleFavorite: function(musicId, playStyle, chartDifficulty, title) {
+    var favorites = this.getFavorites();
+    var idx = -1;
+    for (var i = 0; i < favorites.length; i++) {
+      var f = favorites[i];
+      if (f.musicId === musicId && f.playStyle === playStyle && f.chartDifficulty === chartDifficulty) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx >= 0) {
+      favorites.splice(idx, 1);
+      this.setFavorites(favorites);
+      return false;
+    } else {
+      favorites.push({ musicId: musicId, playStyle: playStyle, chartDifficulty: chartDifficulty, title: title || '' });
+      this.setFavorites(favorites);
+      return true;
+    }
+  },
+
+  clearFavorites: function() {
+    try {
+      localStorage.removeItem(this.FAVORITES_KEY);
+    } catch (e) {}
   },
 
   // Calculate total cache size in bytes

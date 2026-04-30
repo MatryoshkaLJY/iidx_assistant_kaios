@@ -39,9 +39,11 @@ Each page is a JavaScript object registered in `App.pageHandlers[pageId]`, imple
 |------|---------|
 | `onShow(data)` | Called when page becomes visible. Receives data from the page that navigated here. |
 | `onEnter()` | Called when user presses Enter/Accept on a focused item. |
-| `onArrowUp/Down/Left/Right()` | Direction key handlers. If not defined, Up/Down fall back to moving focus through `.list-item`/`.input-row` elements. |
+| `onArrowUp/Down/Left/Right()` | Direction key handlers. If not defined, Up/Down fall back to moving focus through `.list-item`/`.input-row` elements. Left/Right fall back to `moveFocus(-5/+5)` fast navigation. |
+| `onDigit(digit)` | Number key handlers (1-9). |
 | `onSoftLeft/SoftRight()` | Soft key handlers (also triggered by F1/F2). |
 | `onBack()` | Called on Back key. Return `true` to prevent default `goBack()` behavior. |
+| `onFocusChanged()` | Called after `App.renderFocus()` completes. Use to update dynamic softkey labels based on the newly focused item. |
 
 Page files live in `js/pages/` and self-register at the bottom:
 
@@ -56,6 +58,8 @@ App.pageHandlers['login'] = LoginPage;
 `App.goBack()` pops the current page and shows the previous one. Pages can intercept back navigation via `onBack()`.
 
 **Important**: Some "sub-pages" (`diff-songs`, `rec-songs`) do **not** use `App.showPage()`. They manipulate the DOM directly and are pushed onto `navStack` manually. Their parent pages (`difficulty`, `recommend`) handle stack cleanup in `onBack()`.
+
+Similarly, `radar-detail` and `radar-rec` toggle between each other via direct DOM manipulation and **replace** the nav stack top entry (`App.navStack[App.navStack.length - 1]`), so Back returns to `radar` regardless of how many times the user toggled.
 
 ### Focus Management
 
@@ -79,9 +83,13 @@ All API methods follow the callback signature `function(error, result, status)`.
 
 ### Data Flow Patterns
 
-- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with left/right keys.
+- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with digit keys `1`/`3`. Left/right arrows perform fast vertical navigation (`moveFocus(-5/+5)`) globally.
+- **Recommendations**: Three modes (`hot_hand`, `progress`, `ascension`). Results sorted by `recommendation_score` descending.
+- **Radar**: Six dimensions (`notes`, `peak`, `scratch`, `soflan`, `charge`, `chord`). On first load, all 6 dimensions' detail + recommendation data are prefetched in parallel (12 requests) and cached together.
 - **Search**: Full song list fetched once, field-cropped to ~12 fields, cached in `localStorage`. Filtering is done client-side via `Utils.fuzzyMatch()` on `title`, `plainTitle`, `artist`, and `genre`.
-- **Song detail**: Receives `musicId`, `playStyle`, `chartDifficulty`. Displays best/recent scores and a flat list of `difficulty_tables` entries. Right soft key opens a chart-switch menu.
+- **Song detail**: Receives `musicId`, `playStyle`, `chartDifficulty`. Displays best/recent scores and a flat list of `difficulty_tables` entries. Right soft key opens a chart-switch menu. Favorited songs show `★` in the header.
+- **Favorites**: Local-only feature. Toggle via right soft key in `diff-songs`, `rec-songs`, `radar-detail`, and `radar-rec` lists. Visual indicator: gold `.favorite-bar` (4px on right edge of list item). Favorites page shows all saved songs sorted alphabetically.
+- **Radar detail/rec toggle**: Digit `3` on `radar-detail` switches to `radar-rec`; digit `1` on `radar-rec` switches back. The toggle replaces the current nav stack entry (does not push), so Back returns directly to the radar overview.
 
 ### Storage Keys
 
@@ -94,6 +102,10 @@ All API methods follow the callback signature `function(error, result, status)`.
 | `pocketiidx_username/password` | Saved credentials |
 | `pocketiidx_remember_username/password` | Boolean flags |
 | `pocketiidx_auto_login` | Auto-login flag |
+| `pocketiidx_favorites` | Array of `{musicId, playStyle, chartDifficulty, title}` |
+| `pocketiidx_radar_cache_{playStyle}` | Radar summary + dimensions + dimensionData |
+| `pocketiidx_diff_cache_{tableName}` | Difficulty table data |
+| `pocketiidx_rec_cache_{playStyle}_{mode}` | Recommendation songs array |
 
 ### File Loading Order
 
@@ -104,7 +116,7 @@ Scripts in `index.html` load in this order:
 3. `storage.js`
 4. `api.js`
 5. `app.js`
-6. `pages/*.js` (login, menu, difficulty, recommend, search, song)
+6. `pages/*.js` (login, menu, difficulty, recommend, search, radar, song, favorites)
 7. `init.js`
 
 `init.js` calls `App.init()` immediately if `document.readyState === 'complete'`, otherwise on `window.onload`.

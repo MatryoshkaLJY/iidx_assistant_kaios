@@ -42,7 +42,7 @@ html, body {
 
 /* Content area */
 .content {
-  height: 236px;
+  height: 216px;
   overflow: hidden;
   position: relative;
 }
@@ -110,6 +110,15 @@ html, body {
   top: 0;
   width: 4px;
   height: 100%;
+}
+
+.favorite-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: #ffd700;
 }
 
 .list-item .item-title {
