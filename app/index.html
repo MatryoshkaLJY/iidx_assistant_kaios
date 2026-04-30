@@ -48,6 +48,8 @@
         <ul class="list" id="menu-list">
           <li class="list-item" data-action="sp-diff">SP 难度表</li>
           <li class="list-item" data-action="dp-diff">DP 难度表</li>
+          <li class="list-item" data-action="sp-radar">SP 雷达</li>
+          <li class="list-item" data-action="dp-radar">DP 雷达</li>
           <li class="list-item" data-action="sp-rec">SP 练习推荐</li>
           <li class="list-item" data-action="dp-rec">DP 练习推荐</li>
           <li class="list-item" data-action="search">歌曲搜索</li>
@@ -143,6 +145,53 @@
     </div>
   </section>
 
+  <!-- Radar Summary Page -->
+  <section id="page-radar" class="page">
+    <div class="header" id="radar-header">雷达</div>
+    <div class="content">
+      <div class="scrollable">
+        <ul class="list" id="radar-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="radar-soft-left">返回</div>
+      <div class="softkey-center" id="radar-soft-center">选择</div>
+      <div class="softkey-right" id="radar-soft-right"></div>
+    </div>
+  </section>
+
+  <!-- Radar Dimension Detail Page -->
+  <section id="page-radar-detail" class="page">
+    <div class="header" id="radar-detail-header">雷达详情</div>
+    <div class="info-bar" id="radar-detail-bar"><span class="list-counter"></span></div>
+    <div class="content" style="height: 212px;">
+      <div class="scrollable">
+        <ul class="list" id="radar-detail-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="radar-detail-soft-left">返回</div>
+      <div class="softkey-center" id="radar-detail-soft-center">查看</div>
+      <div class="softkey-right" id="radar-detail-soft-right">推荐</div>
+    </div>
+  </section>
+
+  <!-- Radar Recommendation Page -->
+  <section id="page-radar-rec" class="page">
+    <div class="header" id="radar-rec-header">雷达推荐</div>
+    <div class="info-bar" id="radar-rec-bar"><span class="list-counter"></span></div>
+    <div class="content" style="height: 212px;">
+      <div class="scrollable">
+        <ul class="list" id="radar-rec-list"></ul>
+      </div>
+    </div>
+    <div class="softkey-bar">
+      <div class="softkey-left" id="radar-rec-soft-left">返回</div>
+      <div class="softkey-center" id="radar-rec-soft-center">查看</div>
+      <div class="softkey-right" id="radar-rec-soft-right"></div>
+    </div>
+  </section>
+
   <!-- Song Detail Page -->
   <section id="page-song" class="page">
     <div class="header" id="song-header">歌曲详情</div>
@@ -186,6 +235,7 @@
   <script type="text/javascript" src="js/pages/difficulty.js"></script>
   <script type="text/javascript" src="js/pages/recommend.js"></script>
   <script type="text/javascript" src="js/pages/search.js"></script>
+  <script type="text/javascript" src="js/pages/radar.js"></script>
   <script type="text/javascript" src="js/pages/song.js"></script>
   <script type="text/javascript" src="js/init.js"></script>
 </body>

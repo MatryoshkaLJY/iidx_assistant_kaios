@@ -41,6 +41,12 @@ var MenuPage = {
       case 'dp-rec':
         App.showPage('recommend', { playStyle: 1 });
         break;
+      case 'sp-radar':
+        App.showPage('radar', { playStyle: 0 });
+        break;
+      case 'dp-radar':
+        App.showPage('radar', { playStyle: 1 });
+        break;
       case 'search':
         App.showPage('search');
         break;
@@ -154,6 +160,7 @@ var MenuPage = {
     if (cmd === 'logout') {
       Storage.clearToken();
       Storage.clearCredentials();
+      Storage.clearAllRadarCaches();
       App.navStack = [];
       App.showPage('login');
     } else if (cmd === 'profile') {

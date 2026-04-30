@@ -3,6 +3,8 @@ var App = {
   currentPage: null,
   currentFocusIndex: 0,
   focusableItems: [],
+  syncStatus: null,
+  syncStatusTimestamp: 0,
 
   init: function() {
     // Disable touch navigation for D-pad control (KaiOS)
@@ -15,6 +17,7 @@ var App = {
     var token = Storage.getToken();
     if (token) {
       this.showPage('menu');
+      this.fetchSyncStatus();
     } else {
       this.showPage('login');
     }
@@ -255,6 +258,43 @@ var App = {
           break;
       }
     });
+  },
+
+  // Sync status
+  fetchSyncStatus: function() {
+    var self = this;
+    Api.getSyncStatus('bjmania', function(error, result) {
+      if (!error && result) {
+        self.syncStatus = result;
+        self.syncStatusTimestamp = self._parseSyncTimestamp(result);
+      }
+    });
+  },
+
+  _parseSyncTimestamp: function(result) {
+    if (!result) return 0;
+    if (typeof result === 'number') return result;
+    if (typeof result === 'string') {
+      var d = new Date(result).getTime();
+      if (!isNaN(d)) return d;
+      var n = parseInt(result, 10);
+      if (!isNaN(n)) return n;
+    }
+    if (typeof result === 'object') {
+      for (var key in result) {
+        if (result.hasOwnProperty(key)) {
+          var val = result[key];
+          if (typeof val === 'number') return val;
+          if (typeof val === 'string') {
+            var d2 = new Date(val).getTime();
+            if (!isNaN(d2)) return d2;
+            var n2 = parseInt(val, 10);
+            if (!isNaN(n2)) return n2;
+          }
+        }
+      }
+    }
+    return 0;
   },
 
   // Page handlers registry

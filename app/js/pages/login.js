@@ -144,6 +144,7 @@ var LoginPage = {
 
         App.navStack = [];
         App.showPage('menu');
+        App.fetchSyncStatus();
       } else {
         alert('登录失败: 未获取到 token');
       }

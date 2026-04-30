@@ -1,6 +1,7 @@
 var Storage = {
   TOKEN_KEY: 'pocketiidx_token',
   MUSIC_CACHE_KEY: 'pocketiidx_music_cache',
+  RADAR_CACHE_PREFIX: 'pocketiidx_radar_cache_',
   USERNAME_KEY: 'pocketiidx_username',
   PASSWORD_KEY: 'pocketiidx_password',
   REMEMBER_USERNAME_KEY: 'pocketiidx_remember_username',
@@ -149,5 +150,33 @@ var Storage = {
     } catch (e) {
       return false;
     }
+  },
+
+  // Radar cache (localStorage)
+  getRadarCache: function(playStyle) {
+    try {
+      var data = localStorage.getItem(this.RADAR_CACHE_PREFIX + playStyle);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  setRadarCache: function(playStyle, cacheData) {
+    try {
+      localStorage.setItem(this.RADAR_CACHE_PREFIX + playStyle, JSON.stringify(cacheData));
+    } catch (e) {}
+  },
+
+  clearRadarCache: function(playStyle) {
+    try {
+      localStorage.removeItem(this.RADAR_CACHE_PREFIX + playStyle);
+    } catch (e) {}
+  },
+
+  clearAllRadarCaches: function() {
+    this.clearRadarCache(0);
+    this.clearRadarCache(1);
   }
 };

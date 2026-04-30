@@ -144,5 +144,29 @@ var Api = {
   getMusicDetail: function(musicId, playStyle, chartDifficulty, callback) {
     var url = API_BASE + '/api/music/' + musicId + '/' + playStyle + '/' + chartDifficulty;
     this._requestWithAuth('GET', url, null, callback);
+  },
+
+  // Get radar summary
+  getRadarSummary: function(playStyle, callback) {
+    var url = API_BASE + '/api/radar/' + playStyle + '/summary';
+    this._requestWithAuth('GET', url, null, callback);
+  },
+
+  // Get radar dimension detail
+  getRadarDimension: function(playStyle, dimension, callback) {
+    var url = API_BASE + '/api/radar/' + playStyle + '/dimension/' + encodeURIComponent(dimension);
+    this._requestWithAuth('GET', url, null, callback);
+  },
+
+  // Get radar-based recommendations
+  getRadarRecommendations: function(playStyle, dimension, callback) {
+    var url = API_BASE + '/api/recommendation/player-radar/' + playStyle + '?radar_dimension=' + encodeURIComponent(dimension);
+    this._requestWithAuth('GET', url, null, callback);
+  },
+
+  // Get sync status for an external source
+  getSyncStatus: function(ext, callback) {
+    var url = API_BASE + '/api/sync/status/' + encodeURIComponent(ext);
+    this._requestWithAuth('GET', url, null, callback);
   }
 };
