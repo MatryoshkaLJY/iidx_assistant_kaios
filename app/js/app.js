@@ -490,6 +490,9 @@ var App = {
         return;
       }
 
+      // Capture timestamp so every block uses the same server timestamp
+      self._fetchAllTimestamp = self.syncStatusTimestamp;
+
       var tasks = [];
 
       // 1. Music list
@@ -517,6 +520,7 @@ var App = {
       self._fetchNextTask(tasks, 0, function() {
         App.hideLoading();
         self._fetchAllInProgress = false;
+        delete self._fetchAllTimestamp;
         alert('获取完成');
       });
     });
@@ -613,7 +617,7 @@ var App = {
         Api.getMusicList(function(error, result) {
           if (!error && result) {
             Storage.setCachedMusicList(result);
-            Storage.setMusicCacheMeta({ syncTimestamp: self.syncStatusTimestamp || Date.now() });
+            Storage.setMusicCacheMeta({ syncTimestamp: self._fetchAllTimestamp });
           }
           self._fetchNextTask(tasks, index + 1, callback);
         });
@@ -624,7 +628,7 @@ var App = {
         Api.getDifficultyTable(task.tableName, function(error, result) {
           if (!error && result) {
             Storage.setDiffCache(task.tableName, {
-              syncTimestamp: self.syncStatusTimestamp || Date.now(),
+              syncTimestamp: self._fetchAllTimestamp,
               data: result
             });
           }
@@ -650,7 +654,7 @@ var App = {
               }
             }
             Storage.setRecCache(task.playStyle, task.mode, {
-              syncTimestamp: self.syncStatusTimestamp || Date.now(),
+              syncTimestamp: self._fetchAllTimestamp,
               data: Utils.sortBy(songs, 'recommendation_score', true)
             });
           }
@@ -684,7 +688,7 @@ var App = {
 
       if (dimensions.length === 0) {
         Storage.setRadarCache(playStyle, {
-          syncTimestamp: self.syncStatusTimestamp || Date.now(),
+          syncTimestamp: self._fetchAllTimestamp,
           summary: radarData,
           dimensions: dimensions,
           dimensionData: dimensionData
@@ -700,7 +704,7 @@ var App = {
         completed++;
         if (completed >= total) {
           Storage.setRadarCache(playStyle, {
-            syncTimestamp: self.syncStatusTimestamp || Date.now(),
+            syncTimestamp: self._fetchAllTimestamp,
             summary: radarData,
             dimensions: dimensions,
             dimensionData: dimensionData
