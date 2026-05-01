@@ -349,6 +349,16 @@ html, body {
   color: #fff;
 }
 
+.app-menu-item.app-menu-info {
+  color: #888;
+  font-size: 12px;
+}
+
+.app-menu-item.app-menu-info.focused {
+  background: #fff;
+  color: #888;
+}
+
 /* Menu grid */
 .menu-logo-bar {
   height: 28px;

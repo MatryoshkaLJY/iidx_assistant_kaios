@@ -326,11 +326,13 @@ var DifficultyPage = {
   },
 
   renderSongsPage: function() {
+    var tableName = this.buildTableName();
     var savedRaw = localStorage.getItem('pocketiidx_diff_state_' + this.playStyle);
     if (savedRaw) {
       try {
-        var saved = JSON.parse(savedRaw);
-        if (saved.tableName === this.buildTableName()) {
+        var allStates = JSON.parse(savedRaw);
+        var saved = allStates[tableName];
+        if (saved) {
           this.viewMode = saved.viewMode || 'list';
           this.currentGroupIndex = saved.groupIndex || 0;
           if (this.currentGroupIndex >= this.groupKeys.length) {
@@ -476,9 +478,27 @@ var DifficultyPage = {
     App.renderFocus();
   },
 
+  saveDiffState: function() {
+    if (this.step === 'songs' && this.tableData) {
+      var key = 'pocketiidx_diff_state_' + this.playStyle;
+      var tableName = this.buildTableName();
+      var allStates = {};
+      var raw = localStorage.getItem(key);
+      if (raw) {
+        try { allStates = JSON.parse(raw); } catch (e) {}
+      }
+      allStates[tableName] = {
+        groupIndex: this.currentGroupIndex,
+        viewMode: this.viewMode
+      };
+      localStorage.setItem(key, JSON.stringify(allStates));
+    }
+  },
+
   toggleViewMode: function() {
     var savedIdx = App.currentFocusIndex;
     this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+    this.saveDiffState();
     this.renderCurrentGroup();
     var total = App.focusableItems.length;
     if (savedIdx >= 0 && savedIdx < total) {
@@ -543,12 +563,14 @@ var DifficultyPage = {
             this.currentGroupIndex = this.groupKeys.length - 1;
           }
           this.renderCurrentGroup();
+          this.saveDiffState();
         } else if (digit === 3) {
           this.currentGroupIndex++;
           if (this.currentGroupIndex >= this.groupKeys.length) {
             this.currentGroupIndex = 0;
           }
           this.renderCurrentGroup();
+          this.saveDiffState();
         }
       }
     }
@@ -557,11 +579,7 @@ var DifficultyPage = {
   onBack: function() {
     if (this.step === 'songs') {
       // Save browsing state before exiting
-      localStorage.setItem('pocketiidx_diff_state_' + this.playStyle, JSON.stringify({
-        tableName: this.buildTableName(),
-        groupIndex: this.currentGroupIndex,
-        viewMode: this.viewMode
-      }));
+      this.saveDiffState();
 
       // Return to difficulty selection
       var songsPage = document.getElementById('page-diff-songs');

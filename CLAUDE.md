@@ -83,13 +83,14 @@ All API methods follow the callback signature `function(error, result, status)`.
 
 ### Data Flow Patterns
 
-- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with digit keys `1`/`3`. Left/right arrows perform fast vertical navigation (`moveFocus(-5/+5)`) globally. Digit `2` toggles between list view and 6-column grid view. Grid cells show clear-flag tinted backgrounds (compact 40×25px). A 3px progress bar below the group bar visualizes clear-flag distribution for the current group. Browsing state (group index, view mode) is saved on exit and restored when re-entering the same table.
+- **Difficulty tables**: State machine `type → level → lamp → songs`. API returns full `rank_groups` object; frontend switches groups locally with digit keys `1`/`3`. Left/right arrows perform fast vertical navigation (`moveFocus(-5/+5)`) globally. Digit `2` toggles between list view and 6-column grid view. Grid cells show clear-flag tinted backgrounds (compact 40×25px). A 3px progress bar below the group bar visualizes clear-flag distribution for the current group. **Browsing state (group index, view mode) is saved immediately on every change** (group switch, view mode toggle) and restored when re-entering the same table. State is stored per-table, per-playStyle.
 - **Recommendations**: Three modes (`hot_hand`, `progress`, `ascension`). Results sorted by `recommendation_score` descending.
 - **Radar**: Six dimensions (`notes`, `peak`, `scratch`, `soflan`, `charge`, `chord`). On first load, all 6 dimensions' detail + recommendation data are prefetched in parallel (12 requests) and cached together.
 - **Search**: Full song list fetched once, field-cropped to ~12 fields, cached in `localStorage`. Filtering is done client-side via `Utils.fuzzyMatch()` on `title`, `plainTitle`, `artist`, and `genre`.
 - **Song detail**: Receives `musicId`, `playStyle`, `chartDifficulty`. Displays best/recent scores and a flat list of `difficulty_tables` entries. Right soft key opens a chart-switch menu. Favorited songs show `★` in the header.
 - **Favorites**: Local-only feature. Toggle via right soft key in `diff-songs`, `rec-songs`, `radar-detail`, and `radar-rec` lists. Visual indicator: gold `.favorite-bar` (4px on right edge of list item). Favorites page shows all saved songs sorted alphabetically.
 - **Radar detail/rec toggle**: Digit `3` on `radar-detail` switches to `radar-rec`; digit `1` on `radar-rec` switches back. The toggle replaces the current nav stack entry (does not push), so Back returns directly to the radar overview.
+- **Sync & Cache**: `App.fetchSyncStatus()` is a singleton — concurrent calls are deduplicated and all callbacks receive the same result. It queries `/api/scores` first (using the first score's `play_time` as the authoritative sync timestamp) and falls back to `/api/sync/status`. `App.fullSync()` updates only stale caches. `App.fetchAllData()` force-refetches all data types with a `(done/total)` progress indicator.
 
 ### Storage Keys
 
@@ -106,7 +107,7 @@ All API methods follow the callback signature `function(error, result, status)`.
 | `pocketiidx_radar_cache_{playStyle}` | Radar summary + dimensions + dimensionData |
 | `pocketiidx_diff_cache_{tableName}` | Difficulty table data |
 | `pocketiidx_rec_cache_{playStyle}_{mode}` | Recommendation songs array |
-| `pocketiidx_diff_state_{playStyle}` | Difficulty table browsing state (tableName, groupIndex, viewMode) |
+| `pocketiidx_diff_state_{playStyle}` | Difficulty table browsing state — object mapping `tableName → {groupIndex, viewMode}` |
 
 ### File Loading Order
 

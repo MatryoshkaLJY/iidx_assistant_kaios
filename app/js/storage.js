@@ -350,6 +350,60 @@ var Storage = {
     } catch (e) {}
   },
 
+  // Collect all caches with stale timestamps
+  getStaleCaches: function(latestTimestamp) {
+    var stale = [];
+
+    // Music list
+    var musicMeta = this.getMusicCacheMeta();
+    if (this.hasMusicCache() && (!musicMeta || musicMeta.syncTimestamp !== latestTimestamp)) {
+      stale.push({ type: 'music' });
+    }
+
+    // Radar caches
+    for (var ps = 0; ps <= 1; ps++) {
+      var radar = this.getRadarCache(ps);
+      if (radar && radar.syncTimestamp !== latestTimestamp) {
+        stale.push({ type: 'radar', playStyle: ps });
+      }
+    }
+
+    // Difficulty table caches
+    try {
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf(this.DIFF_CACHE_PREFIX) === 0) {
+          var tableName = key.substring(this.DIFF_CACHE_PREFIX.length);
+          var cache = this.getDiffCache(tableName);
+          if (cache && cache.syncTimestamp !== latestTimestamp) {
+            stale.push({ type: 'diff', tableName: tableName });
+          }
+        }
+      }
+    } catch (e) {}
+
+    // Recommendation caches
+    try {
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var key = localStorage.key(i);
+        if (key && key.indexOf(this.REC_CACHE_PREFIX) === 0) {
+          var suffix = key.substring(this.REC_CACHE_PREFIX.length);
+          var parts = suffix.split('_');
+          if (parts.length >= 2) {
+            var playStyle = parseInt(parts[0], 10);
+            var mode = parts.slice(1).join('_');
+            var cache = this.getRecCache(playStyle, mode);
+            if (cache && cache.syncTimestamp !== latestTimestamp) {
+              stale.push({ type: 'rec', playStyle: playStyle, mode: mode });
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
+    return stale;
+  },
+
   // Calculate total cache size in bytes
   getCacheSize: function() {
     var total = 0;

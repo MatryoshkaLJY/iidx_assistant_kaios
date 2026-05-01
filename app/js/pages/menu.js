@@ -49,6 +49,7 @@ var MenuPage = {
       var items = document.querySelectorAll('#app-menu-list .app-menu-item');
       if (this.menuFocusIndex >= 0 && this.menuFocusIndex < items.length) {
         var cmd = items[this.menuFocusIndex].getAttribute('data-menu-cmd');
+        if (!cmd) return;
         this.execMenuCmd(cmd);
       }
       return;
@@ -184,6 +185,21 @@ var MenuPage = {
         items[i].textContent = username ? '退出登录 (' + username + ')' : '退出登录';
       }
     }
+
+    var syncInfo = document.getElementById('app-menu-sync-info');
+    if (syncInfo) {
+      if (App.syncStatusTimestamp > 0) {
+        var d = new Date(App.syncStatusTimestamp);
+        var yyyy = d.getFullYear();
+        var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+        var dd = ('0' + d.getDate()).slice(-2);
+        var hh = ('0' + d.getHours()).slice(-2);
+        var min = ('0' + d.getMinutes()).slice(-2);
+        syncInfo.textContent = '同步时间: ' + yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min;
+      } else {
+        syncInfo.textContent = '同步状态: 未获取';
+      }
+    }
   },
 
   hideMenu: function() {
@@ -234,6 +250,10 @@ var MenuPage = {
     } else if (cmd === 'clear-cache') {
       Storage.clearAllCaches();
       alert('缓存已清除');
+    } else if (cmd === 'full-sync') {
+      App.fullSync();
+    } else if (cmd === 'fetch-all') {
+      App.fetchAllData();
     }
   }
 };

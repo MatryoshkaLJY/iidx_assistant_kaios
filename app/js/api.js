@@ -164,6 +164,11 @@ var Api = {
     this._requestWithAuth('GET', url, null, callback);
   },
 
+  // Get all personal scores
+  getScores: function(callback) {
+    this._requestWithAuth('GET', API_BASE + '/api/scores', null, callback);
+  },
+
   // Get sync status for an external source
   getSyncStatus: function(ext, callback) {
     var url = API_BASE + '/api/sync/status/' + encodeURIComponent(ext);

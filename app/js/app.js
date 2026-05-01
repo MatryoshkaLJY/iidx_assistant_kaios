@@ -312,13 +312,38 @@ var App = {
   },
 
   // Sync status
-  fetchSyncStatus: function() {
+  fetchSyncStatus: function(callback) {
     var self = this;
-    Api.getSyncStatus('bjmania', function(error, result) {
-      if (!error && result) {
-        self.syncStatus = result;
-        self.syncStatusTimestamp = self._parseSyncTimestamp(result);
+    App.showLoading('正在获取服务器状态...');
+
+    // Use /api/scores for accurate latest-update timestamp.
+    // The first score in the list carries the most recent timestamp.
+    Api.getScores(function(error, result) {
+      if (!error && Array.isArray(result) && result.length > 0) {
+        var firstScore = result[0];
+        var timestamp = 0;
+        if (firstScore.play_time) {
+          var d = new Date(firstScore.play_time).getTime();
+          if (!isNaN(d)) timestamp = d;
+        }
+        if (timestamp > 0) {
+          self.syncStatus = firstScore;
+          self.syncStatusTimestamp = timestamp;
+          App.hideLoading();
+          if (callback) callback(null, firstScore);
+          return;
+        }
       }
+
+      // Fallback to /api/sync/status if scores endpoint fails
+      Api.getSyncStatus('bjmania', function(error2, result2) {
+        App.hideLoading();
+        if (!error2 && result2) {
+          self.syncStatus = result2;
+          self.syncStatusTimestamp = self._parseSyncTimestamp(result2);
+        }
+        if (callback) callback(error2, result2);
+      });
     });
   },
 
@@ -346,6 +371,369 @@ var App = {
       }
     }
     return 0;
+  },
+
+  fullSync: function() {
+    var self = this;
+    if (self._syncInProgress) {
+      alert('同步正在进行中');
+      return;
+    }
+    self._syncInProgress = true;
+    App.showLoading('正在检查同步状态...');
+    self.fetchSyncStatus(function(error, result) {
+      if (error || self.syncStatusTimestamp === 0) {
+        App.hideLoading();
+        self._syncInProgress = false;
+        alert('获取同步状态失败');
+        return;
+      }
+      var staleCaches = Storage.getStaleCaches(self.syncStatusTimestamp);
+      if (staleCaches.length === 0) {
+        App.hideLoading();
+        self._syncInProgress = false;
+        alert('所有数据已是最新');
+        return;
+      }
+      self._syncCount = { total: staleCaches.length, done: 0 };
+      self._syncNextCache(staleCaches, 0, function() {
+        App.hideLoading();
+        self._syncInProgress = false;
+        alert('同步完成');
+      });
+    });
+  },
+
+  _syncNextCache: function(caches, index, callback) {
+    var self = this;
+    if (index >= caches.length) {
+      if (callback) callback();
+      return;
+    }
+    var cache = caches[index];
+    self._syncCount.done++;
+    var progress = '(' + self._syncCount.done + '/' + self._syncCount.total + ') ';
+    switch (cache.type) {
+      case 'music':
+        App.showLoading(progress + '正在同步曲库...');
+        Api.getMusicList(function(error, result) {
+          if (!error && result) {
+            Storage.setCachedMusicList(result);
+            Storage.setMusicCacheMeta({ syncTimestamp: self.syncStatusTimestamp });
+          }
+          self._syncNextCache(caches, index + 1, callback);
+        });
+        break;
+      case 'diff':
+        App.showLoading(progress + '正在同步难度表...');
+        Api.getDifficultyTable(cache.tableName, function(error, result) {
+          if (!error && result) {
+            Storage.setDiffCache(cache.tableName, {
+              syncTimestamp: self.syncStatusTimestamp,
+              data: result
+            });
+          }
+          self._syncNextCache(caches, index + 1, callback);
+        });
+        break;
+      case 'rec':
+        App.showLoading(progress + '正在同步推荐...');
+        Api.getRecommendations(cache.playStyle, cache.mode, function(error, result) {
+          if (!error && result) {
+            var songs = [];
+            if (Array.isArray(result)) {
+              songs = result;
+            } else if (result && Array.isArray(result.items)) {
+              songs = result.items;
+            } else if (result && typeof result === 'object') {
+              for (var key in result) {
+                if (result.hasOwnProperty(key) && Array.isArray(result[key])) {
+                  songs = result[key];
+                  break;
+                }
+              }
+            }
+            Storage.setRecCache(cache.playStyle, cache.mode, {
+              syncTimestamp: self.syncStatusTimestamp,
+              data: Utils.sortBy(songs, 'recommendation_score', true)
+            });
+          }
+          self._syncNextCache(caches, index + 1, callback);
+        });
+        break;
+      case 'radar':
+        // Radar requires too many requests (1 summary + 12 dimension requests).
+        // Clear the stale cache so it gets re-fetched when user enters radar page.
+        Storage.clearRadarCache(cache.playStyle);
+        self._syncNextCache(caches, index + 1, callback);
+        break;
+      default:
+        self._syncNextCache(caches, index + 1, callback);
+    }
+  },
+
+  fetchAllData: function() {
+    var self = this;
+    if (self._fetchAllInProgress) {
+      alert('获取正在进行中');
+      return;
+    }
+    self._fetchAllInProgress = true;
+
+    // Fetch latest sync status first so all caches share the same timestamp
+    App.showLoading('正在获取服务器状态...');
+    self.fetchSyncStatus(function(error, result) {
+      if (error || self.syncStatusTimestamp === 0) {
+        App.hideLoading();
+        self._fetchAllInProgress = false;
+        alert('获取同步状态失败，无法开始');
+        return;
+      }
+
+      var tasks = [];
+
+      // 1. Music list
+      tasks.push({ type: 'music', label: '曲库' });
+
+      // 2. Radar (SP + DP)
+      tasks.push({ type: 'radar', playStyle: 0, label: 'SP雷达' });
+      tasks.push({ type: 'radar', playStyle: 1, label: 'DP雷达' });
+
+      // 3. Recommendations (SP + DP × 3 modes)
+      var modes = ['hot_hand', 'progress', 'ascension'];
+      for (var ps = 0; ps <= 1; ps++) {
+        for (var m = 0; m < modes.length; m++) {
+          tasks.push({ type: 'rec', playStyle: ps, mode: modes[m], label: (ps === 0 ? 'SP' : 'DP') + '推荐' });
+        }
+      }
+
+      // 4. Difficulty tables — all combinations
+      var diffTasks = self._buildAllDiffTasks();
+      tasks = tasks.concat(diffTasks);
+
+      self._fetchAllCount = { total: tasks.length, done: 0 };
+      App.showLoading('(0/' + tasks.length + ') 准备获取...');
+
+      self._fetchNextTask(tasks, 0, function() {
+        App.hideLoading();
+        self._fetchAllInProgress = false;
+        alert('获取完成');
+      });
+    });
+  },
+
+  _buildAllDiffTasks: function() {
+    var tasks = [];
+    var seen = {};
+
+    // Save and restore DifficultyPage state to avoid side effects
+    var savedPlayStyle = DifficultyPage.playStyle;
+    var savedType = DifficultyPage.selectedType;
+    var savedLevel = DifficultyPage.selectedLevel;
+    var savedLamp = DifficultyPage.selectedLamp;
+
+    for (var ps = 0; ps <= 1; ps++) {
+      DifficultyPage.playStyle = ps;
+      var types = DifficultyPage.getTableTypes();
+
+      for (var t = 0; t < types.length; t++) {
+        var type = types[t];
+        DifficultyPage.selectedType = type;
+
+        if (type.needsLevel) {
+          var levels = DifficultyPage.getLevels(type.id);
+          for (var l = 0; l < levels.length; l++) {
+            DifficultyPage.selectedLevel = levels[l];
+
+            if (type.needsLamp) {
+              var lamps = DifficultyPage.getLamps(type.id, levels[l]);
+              for (var li = 0; li < lamps.length; li++) {
+                DifficultyPage.selectedLamp = lamps[li];
+                var tableName = DifficultyPage.buildTableName();
+                if (tableName && !seen[tableName]) {
+                  seen[tableName] = true;
+                  tasks.push({ type: 'diff', tableName: tableName, label: (ps === 0 ? 'SP' : 'DP') + '难度表' });
+                }
+              }
+            } else {
+              DifficultyPage.selectedLamp = null;
+              var tableName = DifficultyPage.buildTableName();
+              if (tableName && !seen[tableName]) {
+                seen[tableName] = true;
+                tasks.push({ type: 'diff', tableName: tableName, label: (ps === 0 ? 'SP' : 'DP') + '难度表' });
+              }
+            }
+          }
+        } else if (type.needsLamp) {
+          DifficultyPage.selectedLevel = null;
+          var lamps = DifficultyPage.getLamps(type.id, '');
+          for (var li = 0; li < lamps.length; li++) {
+            DifficultyPage.selectedLamp = lamps[li];
+            var tableName = DifficultyPage.buildTableName();
+            if (tableName && !seen[tableName]) {
+              seen[tableName] = true;
+              tasks.push({ type: 'diff', tableName: tableName, label: (ps === 0 ? 'SP' : 'DP') + '难度表' });
+            }
+          }
+        } else {
+          DifficultyPage.selectedLevel = null;
+          DifficultyPage.selectedLamp = null;
+          var tableName = DifficultyPage.buildTableName();
+          if (tableName && !seen[tableName]) {
+            seen[tableName] = true;
+            tasks.push({ type: 'diff', tableName: tableName, label: (ps === 0 ? 'SP' : 'DP') + '难度表' });
+          }
+        }
+      }
+    }
+
+    // Restore state
+    DifficultyPage.playStyle = savedPlayStyle;
+    DifficultyPage.selectedType = savedType;
+    DifficultyPage.selectedLevel = savedLevel;
+    DifficultyPage.selectedLamp = savedLamp;
+
+    return tasks;
+  },
+
+  _fetchNextTask: function(tasks, index, callback) {
+    var self = this;
+    if (index >= tasks.length) {
+      if (callback) callback();
+      return;
+    }
+
+    var task = tasks[index];
+    self._fetchAllCount.done++;
+    var progress = '(' + self._fetchAllCount.done + '/' + self._fetchAllCount.total + ') ';
+
+    switch (task.type) {
+      case 'music':
+        App.showLoading(progress + '正在获取曲库...');
+        Api.getMusicList(function(error, result) {
+          if (!error && result) {
+            Storage.setCachedMusicList(result);
+            Storage.setMusicCacheMeta({ syncTimestamp: self.syncStatusTimestamp || Date.now() });
+          }
+          self._fetchNextTask(tasks, index + 1, callback);
+        });
+        break;
+
+      case 'diff':
+        App.showLoading(progress + '正在获取' + task.label + '...');
+        Api.getDifficultyTable(task.tableName, function(error, result) {
+          if (!error && result) {
+            Storage.setDiffCache(task.tableName, {
+              syncTimestamp: self.syncStatusTimestamp || Date.now(),
+              data: result
+            });
+          }
+          self._fetchNextTask(tasks, index + 1, callback);
+        });
+        break;
+
+      case 'rec':
+        App.showLoading(progress + '正在获取' + task.label + '...');
+        Api.getRecommendations(task.playStyle, task.mode, function(error, result) {
+          if (!error && result) {
+            var songs = [];
+            if (Array.isArray(result)) {
+              songs = result;
+            } else if (result && Array.isArray(result.items)) {
+              songs = result.items;
+            } else if (result && typeof result === 'object') {
+              for (var key in result) {
+                if (result.hasOwnProperty(key) && Array.isArray(result[key])) {
+                  songs = result[key];
+                  break;
+                }
+              }
+            }
+            Storage.setRecCache(task.playStyle, task.mode, {
+              syncTimestamp: self.syncStatusTimestamp || Date.now(),
+              data: Utils.sortBy(songs, 'recommendation_score', true)
+            });
+          }
+          self._fetchNextTask(tasks, index + 1, callback);
+        });
+        break;
+
+      case 'radar':
+        App.showLoading(progress + '正在获取' + task.label + '...');
+        self._fetchRadarFull(task.playStyle, function() {
+          self._fetchNextTask(tasks, index + 1, callback);
+        });
+        break;
+
+      default:
+        self._fetchNextTask(tasks, index + 1, callback);
+    }
+  },
+
+  _fetchRadarFull: function(playStyle, callback) {
+    var self = this;
+    Api.getRadarSummary(playStyle, function(error, result) {
+      if (error || !result) {
+        if (callback) callback();
+        return;
+      }
+
+      var radarData = result;
+      var dimensions = result && result.radar_summary ? result.radar_summary : [];
+      var dimensionData = {};
+
+      if (dimensions.length === 0) {
+        Storage.setRadarCache(playStyle, {
+          syncTimestamp: self.syncStatusTimestamp || Date.now(),
+          summary: radarData,
+          dimensions: dimensions,
+          dimensionData: dimensionData
+        });
+        if (callback) callback();
+        return;
+      }
+
+      var total = dimensions.length * 2;
+      var completed = 0;
+
+      function checkDone() {
+        completed++;
+        if (completed >= total) {
+          Storage.setRadarCache(playStyle, {
+            syncTimestamp: self.syncStatusTimestamp || Date.now(),
+            summary: radarData,
+            dimensions: dimensions,
+            dimensionData: dimensionData
+          });
+          if (callback) callback();
+        }
+      }
+
+      for (var i = 0; i < dimensions.length; i++) {
+        var dim = dimensions[i].dimension;
+        if (!dimensionData[dim]) {
+          dimensionData[dim] = {};
+        }
+
+        Api.getRadarDimension(playStyle, dim, function(dimension) {
+          return function(error, result) {
+            if (!error && result) {
+              dimensionData[dimension].detail = result;
+            }
+            checkDone();
+          };
+        }(dim));
+
+        Api.getRadarRecommendations(playStyle, dim, function(dimension) {
+          return function(error, result) {
+            if (!error && result) {
+              dimensionData[dimension].rec = result;
+            }
+            checkDone();
+          };
+        }(dim));
+      }
+    });
   },
 
   // Page handlers registry
